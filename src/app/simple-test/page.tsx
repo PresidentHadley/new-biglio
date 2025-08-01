@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 
 export default function SimpleTestPage() {
   const [clickCount, setClickCount] = useState(0);
@@ -40,12 +41,12 @@ export default function SimpleTestPage() {
         </div>
 
         <div className="mt-6">
-          <a
+          <Link
             href="/"
             className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded font-semibold inline-block"
           >
             🏠 Back to Home
-          </a>
+          </Link>
         </div>
       </div>
     </div>

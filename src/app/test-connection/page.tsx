@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import Link from 'next/link';
 
 export default function TestConnectionPage() {
   const [connectionStatus, setConnectionStatus] = useState('Testing...');
-  const [books, setBooks] = useState<any[]>([]);
+  const [books, setBooks] = useState<unknown[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -58,7 +59,7 @@ export default function TestConnectionPage() {
       setConnectionStatus('Adding sample data...');
       
       // Add sample user (this might fail if auth is not set up)
-      const { data: userData, error: userError } = await supabase
+      const { data: _userData, error: _userError } = await supabase
         .from('users')
         .upsert({
           id: 'd63e8f92-0c6e-4a4e-8f8a-9b8b8c8d8e8f',
@@ -68,7 +69,7 @@ export default function TestConnectionPage() {
         });
 
       // Add sample channel
-      const { data: channelData, error: channelError } = await supabase
+      const { data: _channelData, error: _channelError } = await supabase
         .from('channels')
         .upsert({
           user_id: 'd63e8f92-0c6e-4a4e-8f8a-9b8b8c8d8e8f',
@@ -97,7 +98,7 @@ export default function TestConnectionPage() {
       }
 
       // Add sample book
-      const { data: bookData, error: bookError } = await supabase
+      const { data: _bookData, error: bookError } = await supabase
         .from('biglios')
         .upsert({
           channel_id: channelResult.id,
@@ -186,12 +187,12 @@ export default function TestConnectionPage() {
             </button>
           )}
           
-          <a
+          <Link
             href="/"
             className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded font-semibold ml-4 inline-block"
           >
             🏠 Back to Home
-          </a>
+          </Link>
         </div>
       </div>
     </div>

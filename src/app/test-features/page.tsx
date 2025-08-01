@@ -49,7 +49,7 @@ export default function TestFeaturesPage() {
             <h3 className="text-xl font-bold text-white mb-4">📊 Test Results</h3>
             <div className="bg-black/30 rounded-lg p-4 font-mono text-sm text-green-300 h-64 overflow-y-auto">
               {results.length === 0 ? (
-                <div className="text-gray-400">Click "Test Database Connection" to see results...</div>
+                <div className="text-gray-400">Click &quot;Test Database Connection&quot; to see results...</div>
               ) : (
                 results.map((result, index) => (
                   <div key={index} className="mb-1">
