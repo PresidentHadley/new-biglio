@@ -59,7 +59,7 @@ export default function TestConnectionPage() {
       setConnectionStatus('Adding sample data...');
       
       // Add sample user (this might fail if auth is not set up)
-      const { data: _userData, error: _userError } = await supabase
+      await supabase
         .from('users')
         .upsert({
           id: 'd63e8f92-0c6e-4a4e-8f8a-9b8b8c8d8e8f',
@@ -69,7 +69,7 @@ export default function TestConnectionPage() {
         });
 
       // Add sample channel
-      const { data: _channelData, error: _channelError } = await supabase
+      const { error: channelError } = await supabase
         .from('channels')
         .upsert({
           user_id: 'd63e8f92-0c6e-4a4e-8f8a-9b8b8c8d8e8f',
@@ -98,7 +98,7 @@ export default function TestConnectionPage() {
       }
 
       // Add sample book
-      const { data: _bookData, error: bookError } = await supabase
+      const { error: bookError } = await supabase
         .from('biglios')
         .upsert({
           channel_id: channelResult.id,

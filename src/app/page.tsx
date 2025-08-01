@@ -68,8 +68,8 @@ export default function HomePage() {
         save_count: book.save_count,
         published_at: book.published_at,
         channel: {
-          handle: book.channels.handle,
-          display_name: book.channels.display_name
+          handle: book.channels[0]?.handle,
+          display_name: book.channels[0]?.display_name
         }
       })) || [];
 
