@@ -4,8 +4,16 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
+interface Book {
+  id: string;
+  title: string;
+  description?: string;
+  updated_at: string;
+  [key: string]: unknown;
+}
+
 export default function Dashboard() {
-  const [books, setBooks] = useState([]);
+  const [books, setBooks] = useState<Book[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
