@@ -1,0 +1,136 @@
+# 🎯 BIGLIO V2 PROJECT RULES
+# Critical: This is the NEW Biglio system - NEVER create files in biglio-repo!
+
+## 📍 PROJECT STRUCTURE & RULES
+
+### 🚨 CRITICAL: TWO SEPARATE PROJECTS
+1. **biglio-repo** = OLD/LIVE system (React + AWS) - DO NOT MODIFY!
+2. **new-biglio** = NEW system (Next.js + Supabase + Vercel) - THIS PROJECT!
+
+### 🛡️ ABSOLUTE RULES
+- ❌ NEVER create ANY files in `/Users/patrickhadley/Desktop/biglio-repo/`
+- ✅ ALWAYS create files ONLY in `/Users/patrickhadley/Desktop/new-biglio/`
+- ❌ NEVER modify anything in the old biglio-repo (it's the live site)
+- ✅ ALL development happens in new-biglio directory ONLY
+
+## 🏗️ NEW BIGLIO V2 ARCHITECTURE
+
+### Tech Stack
+- **Frontend**: Next.js 14 + TypeScript + Tailwind CSS
+- **Backend**: Supabase (PostgreSQL + Auth + Storage + Edge Functions)
+- **Deployment**: Vercel
+- **Audio**: Google TTS → Supabase Storage (NO MORE AWS!)
+- **AI**: Anthropic Claude via Vercel Edge Functions
+- **PWA**: next-pwa for mobile experience
+
+### Key Features
+- Instagram-like infinite scroll homepage
+- Modal-based book playbook (no navigation away)
+- Multi-channel user system (@username style)
+- Phone + Email authentication
+- Real-time comments, likes, saves
+- AI-powered book writing assistance
+- Audio generation pipeline
+
+## 📂 FILE STRUCTURE (new-biglio ONLY!)
+
+```
+new-biglio/
+├── src/
+│   ├── app/                    # Next.js 14 App Router
+│   │   ├── page.tsx           # Instagram-style feed
+│   │   ├── layout.tsx         # Root layout
+│   │   ├── dashboard/         # Book management
+│   │   ├── book/[id]/         # Book editor
+│   │   └── api/               # Vercel Edge Functions
+│   ├── components/            # React components
+│   ├── context/               # React contexts (AI, Auth)
+│   ├── hooks/                 # Custom hooks
+│   ├── lib/                   # Supabase clients
+│   └── types/                 # TypeScript types
+├── public/                    # Static assets
+├── *.sql                      # Database setup scripts
+├── *.md                       # Documentation
+└── package.json               # Dependencies
+```
+
+## 🔄 MIGRATION STATUS
+
+### ✅ COMPLETED
+- Instagram-style homepage with infinite scroll
+- Supabase database schema (users, channels, biglios, chapters)
+- Authentication system foundation
+- Book dashboard and editor pages
+- Audio generation API (Google TTS → Supabase Storage)
+- AI chat and outline generation APIs
+- All files moved from biglio-repo to new-biglio
+
+### 🚧 IN PROGRESS / TODO
+- Migrate book editor UI components from old system
+- Implement audio player modal
+- Add authentication flows (phone/email)
+- Create channel management system
+- Build comment/like/save functionality
+- Add real-time features
+
+## 🎯 CURRENT OBJECTIVES
+
+1. **Book Editor Migration**: Move React components from old system
+2. **Audio Integration**: Connect new audio pipeline to UI
+3. **Authentication**: Implement Supabase Auth with phone/email
+4. **Real-time Features**: Add live comments, likes, follows
+5. **Mobile PWA**: Optimize for mobile experience
+
+## 🚫 WHAT NOT TO DO
+
+1. **NEVER modify biglio-repo** - it's the live production site
+2. **Don't use AWS services** - we're migrating away from AWS
+3. **Don't create files outside new-biglio directory**
+4. **Don't break existing functionality** - always test changes
+5. **Don't ignore TypeScript errors** - maintain type safety
+
+## 📚 KEY REFERENCES
+
+- **Old System**: `/Users/patrickhadley/Desktop/biglio-repo/` (READ-ONLY)
+- **Audio Logic**: `biglio-repo/src/biglio-book/FUNCTIONS/BiglioChaptersFunction.js`
+- **AI Context**: `biglio-repo/src/biglio-book/context/AIContext.tsx`
+- **Book Editor**: `biglio-repo/src/biglio-book/components/editor/`
+
+## 🔧 DEVELOPMENT COMMANDS
+
+```bash
+# Always run from new-biglio directory!
+cd /Users/patrickhadley/Desktop/new-biglio
+
+# Development
+npm run dev              # Start local server
+npm run build           # Build for production
+npm run lint            # Check code quality
+
+# Database
+# Copy SQL from *.sql files into Supabase SQL Editor
+
+# Deployment
+git add . && git commit -m "message" && git push origin main
+```
+
+## 🎨 UI/UX PRINCIPLES
+
+- **Mobile-first**: Design for phone, enhance for desktop
+- **Instagram-like**: Familiar social media patterns
+- **Audio-focused**: Books are audio files, not text
+- **Fast loading**: Images instant, audio on-demand
+- **Modal playbook**: Never leave the main feed
+- **Channel system**: Multiple identities per user
+
+## 🔑 ENVIRONMENT VARIABLES
+
+Required in `.env.local`:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `GOOGLE_CLOUD_PROJECT`
+- `GOOGLE_APPLICATION_CREDENTIALS`
+- `BOOK_ANTHROPIC_API`
+
+Remember: This is a COMPLETE rebuild, not a modification of the old system!
