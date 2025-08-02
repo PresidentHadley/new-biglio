@@ -1,9 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import { FaPlay, FaHeart, FaComment, FaBookmark } from 'react-icons/fa';
 import { useBooks } from '@/hooks/useBooks';
-import BookModal from '@/components/BookModal';
 import Link from 'next/link';
 
 interface Book {
@@ -23,122 +21,8 @@ interface Book {
 
 export default function HomePage() {
   const { books, loading, error } = useBooks();
-  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
-
-  const loadBooks = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data, error } = await supabase
-        .from('biglios')
-        .select(`
-          id,
-          title,
-          description,
-          total_chapters,
-          like_count,
-          comment_count,
-          save_count,
-          published_at,
-          channels!inner(
-            handle,
-            display_name
-          )
-        `)
-        .eq('is_published', true)
-        .order('published_at', { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-
-      const transformedBooks: Book[] = data?.map(book => ({
-        id: book.id,
-        title: book.title,
-        description: book.description || '',
-        total_chapters: book.total_chapters,
-        like_count: book.like_count,
-        comment_count: book.comment_count,
-        save_count: book.save_count,
-        published_at: book.published_at,
-        channel: {
-          handle: book.channels[0]?.handle,
-          display_name: book.channels[0]?.display_name
-        }
-      })) || [];
-
-      setBooks(transformedBooks);
-      
-      // If no books, add sample data
-      if (transformedBooks.length === 0) {
-        await addSampleData();
-      }
-      
-    } catch (err) {
-      console.error('Error loading books:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load books');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const addSampleData = async () => {
-    try {
-      // Add sample user
-      const { error: userError } = await supabase
-        .from('users')
-        .upsert({
-          id: 'd63e8f92-0c6e-4a4e-8f8a-9b8b8c8d8e8f',
-          email: 'storyteller@biglio.com',
-          display_name: 'Alex Chen'
-        });
-
-      // Add sample channel
-      const { error: channelError } = await supabase
-        .from('channels')
-        .upsert({
-          user_id: 'd63e8f92-0c6e-4a4e-8f8a-9b8b8c8d8e8f',
-          handle: 'storyteller',
-          display_name: 'The Storyteller',
-          is_primary: true
-        });
-
-      // Get channel ID
-      const { data: channelData } = await supabase
-        .from('channels')
-        .select('id')
-        .eq('handle', 'storyteller')
-        .single();
-
-      if (channelData) {
-        // Add sample book
-        const { error: bookError } = await supabase
-          .from('biglios')
-          .upsert({
-            channel_id: channelData.id,
-            title: 'The Midnight Chronicles',
-            description: 'A thrilling adventure series set in a world where magic and technology collide',
-            total_chapters: 3,
-            like_count: 1234,
-            comment_count: 89,
-            save_count: 456,
-            is_published: true,
-            published_at: new Date().toISOString()
-          });
-
-        if (!bookError) {
-          // Reload books after adding sample data
-          await loadBooks();
-        }
-      }
-    } catch (err) {
-      console.error('Error adding sample data:', err);
-    }
-  };
 
   const openBookModal = (book: Book) => {
-    setSelectedBook(book);
     // TODO: Show modal with chapters
     alert(`Opening "${book.title}" - Modal system coming next!`);
   };
@@ -257,14 +141,8 @@ export default function HomePage() {
             <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg p-6 mb-6">
               <h2 className="text-2xl font-bold text-white mb-3">Welcome to Biglio V2</h2>
               <p className="text-white text-sm mb-4">
-                Setting up your database... Adding sample content!
+                No books found. Check your database setup in Supabase.
               </p>
-              <button 
-                onClick={addSampleData}
-                className="bg-white text-purple-600 px-6 py-2 rounded-full font-semibold hover:bg-gray-100 transition-colors"
-              >
-                Add Sample Book
-              </button>
             </div>
           </div>
         )}

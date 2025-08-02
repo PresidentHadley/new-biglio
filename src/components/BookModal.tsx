@@ -41,30 +41,30 @@ export default function BookModal({ book, isOpen, onClose }: BookModalProps) {
   const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
+    const loadChapters = async () => {
+      setLoading(true);
+      try {
+        // TODO: Implement chapter loading from Supabase
+        // For now, show placeholder data
+        const mockChapters: Chapter[] = Array.from({ length: book.total_chapters }, (_, i) => ({
+          id: `chapter-${i + 1}`,
+          title: `Chapter ${i + 1}`,
+          chapter_number: i + 1,
+          duration_seconds: 1200 + Math.random() * 600,
+          is_published: true
+        }));
+        setChapters(mockChapters);
+      } catch (error) {
+        console.error('Error loading chapters:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     if (isOpen && book) {
       loadChapters();
     }
   }, [isOpen, book]);
-
-  const loadChapters = async () => {
-    setLoading(true);
-    try {
-      // TODO: Implement chapter loading from Supabase
-      // For now, show placeholder data
-      const mockChapters: Chapter[] = Array.from({ length: book.total_chapters }, (_, i) => ({
-        id: `chapter-${i + 1}`,
-        title: `Chapter ${i + 1}`,
-        chapter_number: i + 1,
-        duration_seconds: 1200 + Math.random() * 600,
-        is_published: true
-      }));
-      setChapters(mockChapters);
-    } catch (error) {
-      console.error('Error loading chapters:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const formatDuration = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
