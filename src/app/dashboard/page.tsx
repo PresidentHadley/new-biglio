@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { AuthModal } from '@/components/AuthModal';
 import Link from 'next/link';
 
 interface Book {
@@ -27,17 +28,19 @@ export default function Dashboard() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newBookTitle, setNewBookTitle] = useState('');
   const [newBookDescription, setNewBookDescription] = useState('');
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push('/auth');
+      setShowAuthModal(true);
       return;
     }
     
     if (user) {
+      setShowAuthModal(false);
       checkUserChannel();
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading]);
 
   const checkUserChannel = async () => {
     if (!user) return;
@@ -270,6 +273,18 @@ export default function Dashboard() {
           </>
         )}
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={() => {
+          setShowAuthModal(false);
+          if (user) {
+            checkUserChannel();
+          }
+        }}
+      />
     </div>
   );
 }

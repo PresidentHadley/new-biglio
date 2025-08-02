@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { AuthModal } from '@/components/AuthModal';
 import Link from 'next/link';
 
 import { AudioGenerationButton } from '@/components/AudioGenerationButton';
@@ -46,6 +47,7 @@ export default function BookEditor() {
   const [editContent, setEditContent] = useState('');
   const [newChapterTitle, setNewChapterTitle] = useState('');
   const [isWritingChapter, setIsWritingChapter] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   // const aiContext = useContext(AIContext); // TODO: Implement AI chat functionality
 
@@ -91,11 +93,12 @@ export default function BookEditor() {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push('/auth');
+      setShowAuthModal(true);
       return;
     }
     
     if (bookId && user) {
+      setShowAuthModal(false);
       fetchBookData();
       fetchChapters();
     }
@@ -601,6 +604,19 @@ Please write a compelling ending that flows naturally from the existing content 
           </div>
         )}
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={() => {
+          setShowAuthModal(false);
+          if (bookId && user) {
+            fetchBookData();
+            fetchChapters();
+          }
+        }}
+      />
     </div>
   );
 }
