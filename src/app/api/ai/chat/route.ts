@@ -36,7 +36,7 @@ Key guidelines:
     }
     
     // Convert messages to Anthropic format
-    const anthropicMessages = messages.map((msg: ChatMessage) => ({
+    const anthropicMessages: Anthropic.Messages.MessageParam[] = messages.map((msg: ChatMessage) => ({
       role: msg.role === 'user' ? 'user' : 'assistant',
       content: msg.content
     }));
