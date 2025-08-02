@@ -46,7 +46,7 @@ export default function HomePage() {
           comment_count,
           save_count,
           published_at,
-          channels!inner (
+          channels!inner(
             handle,
             display_name
           )
