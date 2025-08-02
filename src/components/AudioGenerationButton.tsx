@@ -38,8 +38,8 @@ export default function AudioGenerationButton({
     try {
       const result = await generateAudio(text, voice);
       
-      if (result.audioUrl) {
-        onSuccess?.(result.audioUrl);
+      if (result.audio_url) {
+        onSuccess?.(result.audio_url);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Audio generation failed';
