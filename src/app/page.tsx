@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { FaPlay, FaHeart, FaComment, FaBookmark } from 'react-icons/fa';
-import { supabase } from '@/lib/supabase';
+import { useBooks } from '@/hooks/useBooks';
+import BookModal from '@/components/BookModal';
 import Link from 'next/link';
 
 interface Book {
@@ -21,14 +22,8 @@ interface Book {
 }
 
 export default function HomePage() {
-  const [books, setBooks] = useState<Book[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { books, loading, error } = useBooks();
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
-
-  useEffect(() => {
-    loadBooks();
-  }, []);
 
   const loadBooks = async () => {
     try {
