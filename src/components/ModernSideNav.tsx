@@ -222,27 +222,30 @@ export function ModernSideNav({
         {/* User Profile Section */}
         {isAuthenticated && user ? (
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center">
-                {user.avatar ? (
-                  <img
-                    src={user.avatar}
-                    alt={user.username}
-                    className="w-full h-full rounded-full object-cover"
-                  />
-                ) : (
-                  <FaUser className="text-white" size={20} />
-                )}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                {user.email?.charAt(0).toUpperCase() || 'U'}
               </div>
-              <div>
-                <p className="font-semibold text-gray-900 dark:text-white">
-                  @{user.username || 'username'}
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-gray-900 dark:text-white truncate">
+                  @{user.email?.split('@')[0] || 'username'}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
                   {user.email}
                 </p>
               </div>
             </div>
+            {/* Sign Out Button */}
+            <button
+              onClick={() => {
+                onSignOut?.();
+                onClose();
+              }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-all"
+            >
+              <FaSignOutAlt size={16} />
+              Sign Out
+            </button>
           </div>
         ) : (
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
