@@ -38,6 +38,7 @@ export default function AudioGenerationButton({
     try {
       const result = await generateAudio(text, voice);
       
+      // Force fresh build - property name fixed
       if (result.audio_url) {
         onSuccess?.(result.audio_url);
       }
