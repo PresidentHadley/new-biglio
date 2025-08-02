@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -30,19 +30,7 @@ export default function Dashboard() {
   const [newBookDescription, setNewBookDescription] = useState('');
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      setShowAuthModal(true);
-      return;
-    }
-    
-    if (user) {
-      setShowAuthModal(false);
-      checkUserChannel();
-    }
-  }, [user, authLoading]);
-
-  const checkUserChannel = async () => {
+  const checkUserChannel = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -69,7 +57,19 @@ export default function Dashboard() {
       console.error('Error checking user channel:', err);
       setIsLoading(false);
     }
-  };
+  }, [user, supabase, router]);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      setShowAuthModal(true);
+      return;
+    }
+    
+    if (user) {
+      setShowAuthModal(false);
+      checkUserChannel();
+    }
+  }, [user, authLoading, checkUserChannel]);
 
   const fetchBooksForChannel = async (channelId: string) => {
     try {
