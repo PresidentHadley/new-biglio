@@ -41,6 +41,7 @@ export default function BookEditor() {
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
   const [newChapterTitle, setNewChapterTitle] = useState('');
+  const [isWritingChapter, setIsWritingChapter] = useState(false);
 
   // const aiContext = useContext(AIContext); // TODO: Implement AI chat functionality
 
@@ -162,6 +163,66 @@ export default function BookEditor() {
     setIsEditing(false);
   };
 
+  const insertAIContent = (content: string) => {
+    // Insert AI content at cursor position or append to current content
+    const insertion = editContent ? '\n\n' + content : content;
+    setEditContent(prev => prev + insertion);
+    if (!isEditing) {
+      setIsEditing(true);
+    }
+  };
+
+  const startWritingChapter = async () => {
+    if (!selectedChapter) return;
+    
+    setIsWritingChapter(true);
+    try {
+      // Call AI to start writing this chapter
+      const prompt = `Start writing this chapter for me. Write approximately 3500 characters of engaging content that will sound great as an audiobook. 
+
+Chapter: "${selectedChapter.title}"
+Current content: "${editContent}"
+
+Please write in a conversational, engaging style suitable for audio. ${editContent ? 'Continue from where the content left off.' : 'Start from the beginning.'}`;
+      
+      // This would use the AI context - for now, we'll add placeholder
+      const aiContent = "This is where the AI would generate chapter content...";
+      insertAIContent(aiContent);
+    } catch (error) {
+      console.error('Error starting chapter:', error);
+    } finally {
+      setIsWritingChapter(false);
+    }
+  };
+
+  const finishChapter = async () => {
+    if (!selectedChapter) return;
+    
+    setIsWritingChapter(true);
+    try {
+      // Call AI to finish this chapter
+      const prompt = `Please finish this chapter for me. Write approximately 3500 characters to bring this chapter to a satisfying conclusion.
+
+Chapter: "${selectedChapter.title}"
+Current content: "${editContent}"
+
+Please write a compelling ending that flows naturally from the existing content and will sound great as an audiobook.`;
+      
+      // This would use the AI context - for now, we'll add placeholder  
+      const aiContent = "This is where the AI would generate chapter conclusion...";
+      insertAIContent(aiContent);
+    } catch (error) {
+      console.error('Error finishing chapter:', error);
+    } finally {
+      setIsWritingChapter(false);
+    }
+  };
+
+  const getCharacterCount = () => editContent.length;
+  const getWordCount = () => editContent.trim().split(/\s+/).filter(word => word.length > 0).length;
+  const isNearLimit = () => getCharacterCount() > 6500; // Warning at 6500
+  const isOverLimit = () => getCharacterCount() > 7500; // Hard limit at 7500
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -252,9 +313,27 @@ export default function BookEditor() {
                       ✍️
                     </span>
                   )}
+                  {chapter.content.trim() && chapter.content.length <= 7500 && !chapter.audio_url && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Generate audio for this chapter
+                        console.log('Generate audio for chapter:', chapter.id);
+                      }}
+                      className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded-full transition-colors"
+                      title="Generate audio"
+                    >
+                      🎵
+                    </button>
+                  )}
                   {chapter.audio_url && (
                     <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
                       🔊
+                    </span>
+                  )}
+                  {chapter.content.length > 7500 && (
+                    <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full" title="Over character limit">
+                      ⚠️
                     </span>
                   )}
                 </div>
@@ -315,14 +394,45 @@ export default function BookEditor() {
                       className="w-full p-3 bg-white text-gray-900 text-xl font-bold rounded border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
                       placeholder="Chapter title"
                     />
-                    <textarea
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      className="w-full h-96 p-4 bg-white text-gray-900 rounded border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none resize-none leading-relaxed"
-                      placeholder="Start writing your chapter..."
-                    />
+                    <div className="space-y-2">
+                      <textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        className={`w-full h-96 p-4 bg-white text-gray-900 rounded border leading-relaxed focus:outline-none resize-none ${
+                          isOverLimit() 
+                            ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200' 
+                            : isNearLimit()
+                            ? 'border-yellow-500 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200'
+                            : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+                        }`}
+                        placeholder="Start writing your chapter..."
+                      />
+                      
+                      {/* Character count and warnings */}
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-4">
+                          <span className={`${isOverLimit() ? 'text-red-600 font-bold' : isNearLimit() ? 'text-yellow-600 font-medium' : 'text-gray-600'}`}>
+                            {getCharacterCount().toLocaleString()} / 7,500 characters
+                          </span>
+                          <span className="text-gray-500">
+                            ~{getWordCount()} words
+                          </span>
+                        </div>
+                        
+                        {isOverLimit() && (
+                          <span className="text-red-600 text-xs font-medium">
+                            ⚠️ Over limit - Audio generation disabled
+                          </span>
+                        )}
+                        {isNearLimit() && !isOverLimit() && (
+                          <span className="text-yellow-600 text-xs font-medium">
+                            ⚠️ Approaching character limit
+                          </span>
+                        )}
+                      </div>
+                    </div>
                     <div className="space-y-4">
-                      <div className="flex gap-3">
+                      <div className="flex flex-wrap gap-3">
                         <button
                           onClick={saveChapter}
                           className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold transition-colors"
@@ -335,6 +445,22 @@ export default function BookEditor() {
                         >
                           Cancel
                         </button>
+                        
+                        {/* AI Writing Assistance */}
+                        <button
+                          onClick={startWritingChapter}
+                          disabled={isWritingChapter}
+                          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded font-medium transition-colors"
+                        >
+                          {isWritingChapter ? '✍️ Writing...' : '✍️ Start Writing'}
+                        </button>
+                        <button
+                          onClick={finishChapter}
+                          disabled={isWritingChapter || !editContent.trim()}
+                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white rounded font-medium transition-colors"
+                        >
+                          {isWritingChapter ? '✍️ Writing...' : '🏁 Finish Chapter'}
+                        </button>
                       </div>
                       
                       {/* Audio Generation in Edit Mode */}
@@ -345,11 +471,17 @@ export default function BookEditor() {
                           chapterTitle={editTitle}
                           chapterContent={editContent}
                           existingAudioUrl={selectedChapter.audio_url}
+                          disabled={isOverLimit()}
                           onAudioGenerated={(audioUrl) => {
                             // Update the chapter with the new audio URL
                             setSelectedChapter(prev => prev ? { ...prev, audio_url: audioUrl } : null);
                           }}
                         />
+                        {isOverLimit() && (
+                          <p className="text-red-600 text-xs mt-2">
+                            ⚠️ Chapter exceeds 7,500 character limit. Please reduce content to enable audio generation.
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -415,6 +547,7 @@ export default function BookEditor() {
                           setIsEditing(true);
                         }
                       }}
+                      onInsertContent={insertAIContent}
                       className="h-full"
                     />
                   </div>

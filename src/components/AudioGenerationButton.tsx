@@ -8,6 +8,7 @@ interface AudioGenerationButtonProps {
   chapterTitle: string;
   chapterContent: string;
   existingAudioUrl?: string;
+  disabled?: boolean;
   onAudioGenerated?: (audioUrl: string) => void;
   className?: string;
 }
@@ -17,6 +18,7 @@ export function AudioGenerationButton({
   chapterTitle,
   chapterContent,
   existingAudioUrl,
+  disabled = false,
   onAudioGenerated,
   className = ''
 }: AudioGenerationButtonProps) {
@@ -154,7 +156,7 @@ export function AudioGenerationButton({
         {!audioUrl ? (
           <button
             onClick={generateAudio}
-            disabled={isGenerating || !chapterContent.trim()}
+            disabled={disabled || isGenerating || !chapterContent.trim()}
             className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded-lg font-semibold transition-colors"
           >
             {isGenerating ? (
@@ -187,7 +189,7 @@ export function AudioGenerationButton({
             </button>
             <button
               onClick={generateAudio}
-              disabled={isGenerating}
+              disabled={disabled || isGenerating}
               className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded-lg font-semibold transition-colors"
             >
               {isGenerating ? (

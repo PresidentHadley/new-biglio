@@ -15,7 +15,9 @@ import {
   FaTimes,
   FaBook,
   FaFileAlt,
-  FaGlobe
+  FaGlobe,
+  FaCopy,
+  FaPlus
 } from 'react-icons/fa';
 
 interface ChatMessage {
@@ -43,6 +45,7 @@ interface AIAssistantChatProps {
   book?: Book;
   currentChapter?: Chapter;
   onContentSuggestion?: (content: string) => void;
+  onInsertContent?: (content: string) => void;
   className?: string;
 }
 
@@ -50,6 +53,7 @@ export function AIAssistantChat({
   book, 
   currentChapter, 
   onContentSuggestion,
+  onInsertContent,
   className = '' 
 }: AIAssistantChatProps) {
   
@@ -286,6 +290,21 @@ How can I help you with your writing today?`;
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const copyToClipboard = async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      // Could add a toast notification here
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
+
+  const insertContent = (content: string) => {
+    if (onInsertContent) {
+      onInsertContent(content);
+    }
+  };
+
   return (
     <div className={`flex flex-col h-full bg-white ${className}`}>
       {/* Header */}
@@ -381,20 +400,44 @@ How can I help you with your writing today?`;
               </div>
             )}
             <div
-              className={`max-w-[80%] p-3 rounded-lg ${
+              className={`max-w-[80%] ${
                 message.role === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-900'
+                  ? 'bg-blue-600 text-white rounded-lg p-3'
+                  : 'bg-gray-100 text-gray-900 rounded-lg'
               }`}
             >
-              <div className="whitespace-pre-wrap">{message.content}</div>
-              <div
-                className={`text-xs mt-1 ${
-                  message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
-                }`}
-              >
-                {formatTime(message.timestamp)}
+              <div className={message.role === 'assistant' ? 'p-3 pb-2' : ''}>
+                <div className="whitespace-pre-wrap">{message.content}</div>
+                <div
+                  className={`text-xs mt-1 ${
+                    message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
+                  }`}
+                >
+                  {formatTime(message.timestamp)}
+                </div>
               </div>
+              
+              {/* Insert & Copy buttons for AI responses */}
+              {message.role === 'assistant' && (
+                <div className="flex items-center gap-2 p-2 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+                  <button
+                    onClick={() => insertContent(message.content)}
+                    className="flex items-center gap-1 px-2 py-1 text-xs bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+                    title="Insert into editor"
+                  >
+                    <FaPlus size={10} />
+                    Insert
+                  </button>
+                  <button
+                    onClick={() => copyToClipboard(message.content)}
+                    className="flex items-center gap-1 px-2 py-1 text-xs bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
+                    title="Copy to clipboard"
+                  >
+                    <FaCopy size={10} />
+                    Copy
+                  </button>
+                </div>
+              )}
             </div>
             {message.role === 'user' && (
               <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
