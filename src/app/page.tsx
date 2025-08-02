@@ -20,7 +20,7 @@ interface Book {
 }
 
 export default function HomePage() {
-  const { books, loading, error } = useBooks();
+  const { books, loading, error, refetch } = useBooks();
 
   const openBookModal = (book: Book) => {
     // TODO: Show modal with chapters
@@ -74,7 +74,7 @@ export default function HomePage() {
             <div className="text-red-400 mb-2">Database Error:</div>
             <div className="text-gray-400 text-sm">{error}</div>
             <button 
-              onClick={loadBooks}
+              onClick={refetch}
               className="mt-4 bg-blue-600 text-white px-4 py-2 rounded"
             >
               Retry Connection
