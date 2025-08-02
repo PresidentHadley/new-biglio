@@ -2,9 +2,33 @@
 
 import { createContext, useContext, useState, ReactNode } from 'react';
 
+interface BookContext {
+  title?: string;
+  description?: string;
+  genre?: string;
+  chapters?: string[];
+  [key: string]: unknown;
+}
+
+interface OutlineOptions {
+  chapterCount?: number;
+  genre?: string;
+  targetAudience?: string;
+  existingOutline?: unknown[];
+  [key: string]: unknown;
+}
+
+interface OutlineResult {
+  chapterNumber: number;
+  title: string;
+  summary: string;
+  keyPoints: string[];
+  estimatedWordCount: number;
+}
+
 interface AIContextType {
-  sendMessage: (message: string, context?: any) => Promise<string>;
-  generateOutline: (title: string, description: string, options?: any) => Promise<any>;
+  sendMessage: (message: string, context?: BookContext) => Promise<string>;
+  generateOutline: (title: string, description: string, options?: OutlineOptions) => Promise<OutlineResult[]>;
   isLoading: boolean;
   error: string | null;
 }
@@ -15,7 +39,7 @@ export function AIProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const sendMessage = async (message: string, context?: any): Promise<string> => {
+  const sendMessage = async (message: string, context?: BookContext): Promise<string> => {
     setIsLoading(true);
     setError(null);
     
@@ -51,7 +75,7 @@ export function AIProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const generateOutline = async (title: string, description: string, options?: any): Promise<any> => {
+  const generateOutline = async (title: string, description: string, options?: OutlineOptions): Promise<OutlineResult[]> => {
     setIsLoading(true);
     setError(null);
     

@@ -21,9 +21,67 @@ export function useAudioJobs(chapterId?: string) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const fetchJobs = async () => {
+      if (!chapterId) return;
+      
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('audio_jobs')
+          .select('*')
+          .eq('chapter_id', chapterId)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setJobs(data || []);
+      } catch (err) {
+        console.error('Error fetching audio jobs:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch audio jobs');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const subscribeToJobs = () => {
+      if (!chapterId) return;
+
+      const subscription = supabase
+        .channel('audio_jobs')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'audio_jobs',
+            filter: `chapter_id=eq.${chapterId}`,
+          },
+          (payload) => {
+            if (payload.eventType === 'INSERT') {
+              setJobs((current) => [payload.new as AudioJob, ...current]);
+            } else if (payload.eventType === 'UPDATE') {
+              setJobs((current) =>
+                current.map((job) =>
+                  job.id === payload.new.id ? (payload.new as AudioJob) : job
+                )
+              );
+            } else if (payload.eventType === 'DELETE') {
+              setJobs((current) =>
+                current.filter((job) => job.id !== payload.old.id)
+              );
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    };
+
     if (chapterId) {
       fetchJobs();
-      subscribeToJobs();
+      const cleanup = subscribeToJobs();
+      return cleanup;
     }
   }, [chapterId]);
 
@@ -46,42 +104,6 @@ export function useAudioJobs(chapterId?: string) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const subscribeToJobs = () => {
-    if (!chapterId) return;
-
-    const subscription = supabase
-      .channel('audio_jobs')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'audio_jobs',
-          filter: `chapter_id=eq.${chapterId}`,
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            setJobs((current) => [payload.new as AudioJob, ...current]);
-          } else if (payload.eventType === 'UPDATE') {
-            setJobs((current) =>
-              current.map((job) =>
-                job.id === payload.new.id ? (payload.new as AudioJob) : job
-              )
-            );
-          } else if (payload.eventType === 'DELETE') {
-            setJobs((current) =>
-              current.filter((job) => job.id !== payload.old.id)
-            );
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-    };
   };
 
   const generateAudio = async (text: string, voice: string = 'female'): Promise<AudioJob> => {
