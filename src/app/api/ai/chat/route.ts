@@ -5,6 +5,11 @@ const anthropic = new Anthropic({
   apiKey: process.env.BOOK_ANTHROPIC_API!,
 });
 
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { messages, context } = await request.json();
@@ -31,7 +36,7 @@ Key guidelines:
     }
     
     // Convert messages to Anthropic format
-    const anthropicMessages = messages.map((msg: any) => ({
+    const anthropicMessages = messages.map((msg: ChatMessage) => ({
       role: msg.role === 'user' ? 'user' : 'assistant',
       content: msg.content
     }));
