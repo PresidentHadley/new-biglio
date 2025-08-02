@@ -42,14 +42,7 @@ export default function BookEditor() {
   const [editContent, setEditContent] = useState('');
   const [newChapterTitle, setNewChapterTitle] = useState('');
 
-  const aiContext = useContext(AIContext);
-
-  useEffect(() => {
-    if (bookId) {
-      fetchBookData();
-      fetchChapters();
-    }
-  }, [bookId]);
+  // const aiContext = useContext(AIContext); // TODO: Implement AI chat functionality
 
   const fetchBookData = async () => {
     try {
@@ -91,13 +84,21 @@ export default function BookEditor() {
     }
   };
 
+  useEffect(() => {
+    if (bookId) {
+      fetchBookData();
+      fetchChapters();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookId]);
+
   const createChapter = async () => {
     if (!newChapterTitle.trim() || !book) return;
 
     try {
       const nextChapterNumber = Math.max(...chapters.map(c => c.chapter_number), 0) + 1;
       
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('chapters')
         .insert({
           biglio_id: bookId,
@@ -323,7 +324,7 @@ export default function BookEditor() {
                           {selectedChapter.content}
                         </div>
                       ) : (
-                        <p className="text-gray-500 italic">No content yet. Click "Edit" to start writing.</p>
+                        <p className="text-gray-500 italic">No content yet. Click &quot;Edit&quot; to start writing.</p>
                       )}
                     </div>
                     <button

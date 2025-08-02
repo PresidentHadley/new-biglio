@@ -72,7 +72,7 @@ export default function Dashboard() {
         channelId = newChannel.id;
       }
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('biglios')
         .insert({
           title: newBookTitle,

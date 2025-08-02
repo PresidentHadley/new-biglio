@@ -27,7 +27,7 @@ export default function OutlineEditor() {
   const [outline, setOutline] = useState<OutlineItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [showManualAdd, setShowManualAdd] = useState(false);
+  // const [showManualAdd, setShowManualAdd] = useState(false); // TODO: Add manual item form
   const [newItemTitle, setNewItemTitle] = useState('');
   const [newItemDescription, setNewItemDescription] = useState('');
   const [aiPrompt, setAiPrompt] = useState('');
@@ -115,7 +115,7 @@ export default function OutlineEditor() {
     setOutline([...outline, newItem]);
     setNewItemTitle('');
     setNewItemDescription('');
-    setShowManualAdd(false);
+    // setShowManualAdd(false); // TODO: Add manual item form
   };
 
   const removeItem = (id: string) => {
