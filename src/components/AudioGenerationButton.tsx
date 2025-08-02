@@ -231,7 +231,7 @@ export function AudioGenerationButton({
       {/* Instructions */}
       {!audioUrl && !isGenerating && (
         <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-          💡 Generate high-quality audio narration for this chapter using Google Text-to-Speech. Audio will be optimized for audiobook listening.
+          💡 Generate high-quality audio narration for this chapter using advanced text-to-speech technology. Audio will be optimized for audiobook listening.
         </div>
       )}
     </div>

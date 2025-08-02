@@ -50,26 +50,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-black">
-      {/* Navigation Bar */}
-      <nav className="sticky top-0 z-40 bg-black border-b border-gray-800 px-4 py-3">
-        <div className="max-w-md mx-auto flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-white">Biglio</h1>
-          <div className="flex space-x-4">
-            <Link 
-              href="/dashboard"
-              className="text-white hover:text-gray-300 flex items-center gap-2 px-3 py-1 rounded-lg hover:bg-gray-800 transition-colors"
-            >
-              ✍️ Write
-            </Link>
-            <button className="text-white hover:text-gray-300">
-              <FaHeart size={24} />
-            </button>
-            <button className="text-white hover:text-gray-300">
-              <FaComment size={24} />
-            </button>
-          </div>
-        </div>
-      </nav>
+      {/* Content now uses the fixed modern navbar from layout */}
 
       {/* Instagram-style Feed */}
       <main className="max-w-md mx-auto">

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { AIProvider } from '@/context/AIContext';
+import { ModernNavBar } from '@/components/ModernNavBar';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -26,7 +27,12 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className} suppressHydrationWarning={true}>
         <AIProvider>
-          <div className="min-h-screen bg-black text-white">
+          <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white">
+            <ModernNavBar 
+              // TODO: Add authentication context
+              isAuthenticated={false}
+              user={null}
+            />
             {children}
           </div>
         </AIProvider>

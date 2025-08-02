@@ -185,7 +185,7 @@ export default function BookEditor() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="h-screen bg-gray-50 flex overflow-hidden">
       {/* Sidebar - Chapters List */}
       <div className="w-80 bg-white border-r border-gray-200 flex flex-col shadow-sm">
         <div className="p-4 border-b border-gray-200">
@@ -265,7 +265,7 @@ export default function BookEditor() {
       </div>
 
       {/* Main Editor */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col overflow-hidden">
         {selectedChapter ? (
           <>
             {/* Header */}
@@ -304,8 +304,8 @@ export default function BookEditor() {
             </div>
 
             {/* Editor Content */}
-            <div className="flex-1 flex">
-              <div className="flex-1 p-6">
+            <div className="flex-1 flex overflow-hidden">
+              <div className="flex-1 p-6 overflow-y-auto">
                 {isEditing ? (
                   <div className="space-y-4">
                     <input
@@ -389,10 +389,10 @@ export default function BookEditor() {
                 )}
               </div>
 
-              {/* AI Chat Sidebar */}
+              {/* AI Chat Sidebar - Fixed Desktop Layout */}
               {showAIChat && (
-                <div className="w-96 bg-white border-l border-gray-200 shadow-sm flex flex-col">
-                  <div className="flex justify-between items-center p-4 border-b border-gray-200">
+                <div className="w-96 bg-white border-l border-gray-200 shadow-sm flex flex-col h-full">
+                  <div className="flex justify-between items-center p-4 border-b border-gray-200 flex-shrink-0">
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">🤖</span>
                       <h3 className="text-lg font-bold text-gray-900">AI Assistant</h3>
@@ -404,7 +404,7 @@ export default function BookEditor() {
                       ✕
                     </button>
                   </div>
-                  <div className="flex-1 min-h-0">
+                  <div className="flex-1 overflow-hidden">
                     <AIAssistantChat
                       book={book}
                       currentChapter={selectedChapter}
