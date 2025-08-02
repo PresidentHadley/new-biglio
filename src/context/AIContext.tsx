@@ -133,3 +133,6 @@ export function useAI(): AIContextType {
   }
   return context;
 }
+
+// Export AIContext for direct usage
+export { AIContext };

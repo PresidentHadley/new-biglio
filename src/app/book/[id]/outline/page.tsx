@@ -77,18 +77,20 @@ export default function OutlineEditor() {
       
       const promptText = aiPrompt || `Generate a comprehensive outline for a book titled "${book.title}"${book.description ? ` with the description: ${book.description}` : ''}. Create 8-12 chapters with engaging titles and detailed descriptions.`;
 
-      const result = await aiContext.generateOutline({
-        bookTitle: book.title,
-        bookDescription: book.description || '',
-        additionalPrompt: promptText,
-        chapterCount: 10
-      });
+      const result = await aiContext.generateOutline(
+        book.title,
+        book.description || '',
+        {
+          additionalPrompt: promptText,
+          chapterCount: 10
+        }
+      );
 
       if (result && result.length > 0) {
         const generatedOutline: OutlineItem[] = result.map((item, index) => ({
           id: `ai-${Date.now()}-${index}`,
           title: item.title,
-          description: item.description,
+          description: item.summary || '',
           order_index: index + 1
         }));
         

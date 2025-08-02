@@ -5,7 +5,7 @@ import { FaPlay, FaSpinner, FaCheck, FaExclamationTriangle } from 'react-icons/f
 import { useAudioJobs } from '@/hooks/useAudioJobs';
 
 interface AudioGenerationButtonProps {
-  chapterId: string;
+  chapterId?: string;
   text: string;
   voice?: 'male' | 'female';
   onSuccess?: (audioUrl: string) => void;
@@ -13,8 +13,8 @@ interface AudioGenerationButtonProps {
   className?: string;
 }
 
-export default function AudioGenerationButton({
-  chapterId,
+export function AudioGenerationButton({
+  chapterId = '',
   text,
   voice = 'female',
   onSuccess,
