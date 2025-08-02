@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { AIContext } from '@/context/AIContext';
 import { useContext } from 'react';
 import { AudioGenerationButton } from '@/components/AudioGenerationButton';
+import { AIAssistantChat } from '@/components/AIAssistantChat';
 
 interface Book {
   id: string;
@@ -339,23 +340,32 @@ export default function BookEditor() {
 
               {/* AI Chat Sidebar */}
               {showAIChat && (
-                <div className="w-96 bg-white border-l border-gray-200 p-4 shadow-sm">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold text-gray-900">🤖 AI Writing Assistant</h3>
+                <div className="w-96 bg-white border-l border-gray-200 shadow-sm flex flex-col">
+                  <div className="flex justify-between items-center p-4 border-b border-gray-200">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">🤖</span>
+                      <h3 className="text-lg font-bold text-gray-900">AI Assistant</h3>
+                    </div>
                     <button
                       onClick={() => setShowAIChat(false)}
-                      className="text-gray-400 hover:text-gray-600"
+                      className="text-gray-400 hover:text-gray-600 p-1"
                     >
                       ✕
                     </button>
                   </div>
-                  <div className="bg-blue-50 rounded p-4 text-center border border-blue-200">
-                    <p className="text-gray-700 text-sm">
-                      AI chat integration ready! Ask for writing help, suggestions, or improvements.
-                    </p>
-                    <p className="text-blue-600 text-xs mt-2">
-                      Feature available - click to activate full AI chat
-                    </p>
+                  <div className="flex-1 min-h-0">
+                    <AIAssistantChat
+                      book={book}
+                      currentChapter={selectedChapter}
+                      onContentSuggestion={(content) => {
+                        // User can insert AI suggestions into their chapter
+                        if (selectedChapter) {
+                          setEditContent(prev => prev + '\n\n' + content);
+                          setIsEditing(true);
+                        }
+                      }}
+                      className="h-full"
+                    />
                   </div>
                 </div>
               )}

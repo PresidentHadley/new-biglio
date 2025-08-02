@@ -1,13 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import { FaPlay, FaHeart, FaComment, FaBookmark } from 'react-icons/fa';
 import { useBooks } from '@/hooks/useBooks';
+import { AudioPlayerModal } from '@/components/AudioPlayerModal';
 import Link from 'next/link';
 
 interface Book {
   id: string;
   title: string;
   description: string;
+  cover_url?: string;
   total_chapters: number;
   like_count: number;
   comment_count: number;
@@ -16,15 +19,23 @@ interface Book {
   channel: {
     handle: string;
     display_name: string;
+    avatar_url?: string;
   };
 }
 
 export default function HomePage() {
   const { books, loading, error, refetch } = useBooks();
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const openBookModal = (book: Book) => {
-    // TODO: Show modal with chapters
-    alert(`Opening "${book.title}" - Modal system coming next!`);
+    setSelectedBook(book);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedBook(null);
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -157,6 +168,13 @@ export default function HomePage() {
           </div>
         )}
       </main>
+
+      {/* Audio Player Modal */}
+      <AudioPlayerModal 
+        book={selectedBook}
+        isOpen={isModalOpen}
+        onClose={closeModal}
+      />
     </div>
   );
 }
