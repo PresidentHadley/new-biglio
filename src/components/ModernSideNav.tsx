@@ -115,7 +115,7 @@ export function ModernSideNav({
     },
     {
       id: 'dashboard',
-      label: 'My Books',
+      label: 'My Biglios',
       href: '/dashboard',
       icon: FaBook,
       requireAuth: true
