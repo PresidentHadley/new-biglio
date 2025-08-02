@@ -33,9 +33,14 @@ export function AudioGenerationButton({
       return;
     }
 
+    if (chapterContent.length > 7500) {
+      setError('Chapter content exceeds 7,500 character limit for audio generation');
+      return;
+    }
+
     setIsGenerating(true);
     setError(null);
-    setProgress('Initializing audio generation...');
+    setProgress('Generating high-quality audio...');
 
     try {
       const response = await fetch('/api/audio/generate', {
@@ -45,14 +50,14 @@ export function AudioGenerationButton({
         },
         body: JSON.stringify({
           chapterId,
-          title: chapterTitle,
-          content: chapterContent,
-          voice: 'en-US-Journey-F' // Default voice, can be made configurable
+          text: chapterContent,
+          voice: 'female' // Default to female voice
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Audio generation failed: ${response.statusText}`);
+        const errorData = await response.json();
+        throw new Error(errorData.details || `Audio generation failed: ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -68,65 +73,16 @@ export function AudioGenerationButton({
         
         // Clear progress after a delay
         setTimeout(() => setProgress(''), 3000);
-      } else if (data.jobId) {
-        // If it's a background job, start polling
-        setProgress('Processing audio... This may take a few minutes.');
-        pollAudioStatus(data.jobId);
       }
     } catch (err) {
       console.error('Error generating audio:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate audio');
     } finally {
-      if (!progress.includes('Processing')) {
-        setIsGenerating(false);
-      }
+      setIsGenerating(false);
     }
   };
 
-  const pollAudioStatus = async (jobId: string) => {
-    const pollInterval = setInterval(async () => {
-      try {
-        const response = await fetch(`/api/audio/status/${jobId}`);
-        
-        if (!response.ok) {
-          throw new Error('Failed to check audio status');
-        }
-
-        const data = await response.json();
-        
-        if (data.status === 'completed' && data.audioUrl) {
-          setAudioUrl(data.audioUrl);
-          setProgress('Audio generated successfully!');
-          onAudioGenerated?.(data.audioUrl);
-          setIsGenerating(false);
-          clearInterval(pollInterval);
-          
-          // Clear progress after a delay
-          setTimeout(() => setProgress(''), 3000);
-        } else if (data.status === 'failed') {
-          setError('Audio generation failed');
-          setIsGenerating(false);
-          clearInterval(pollInterval);
-        } else if (data.status === 'processing') {
-          setProgress(`Processing audio... ${data.progress || ''}`.trim());
-        }
-      } catch (err) {
-        console.error('Error polling audio status:', err);
-        setError('Failed to check audio generation status');
-        setIsGenerating(false);
-        clearInterval(pollInterval);
-      }
-    }, 3000); // Poll every 3 seconds
-
-    // Stop polling after 10 minutes (timeout)
-    setTimeout(() => {
-      clearInterval(pollInterval);
-      if (isGenerating) {
-        setError('Audio generation timed out');
-        setIsGenerating(false);
-      }
-    }, 600000);
-  };
+  // Remove polling function since our API completes synchronously
 
   const playAudio = () => {
     if (audioUrl) {

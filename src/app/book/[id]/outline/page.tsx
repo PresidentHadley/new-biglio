@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase';
 import { useAI } from '@/context/AIContext';
 import Link from 'next/link';
 
@@ -32,7 +32,8 @@ export default function OutlineEditor() {
   const [newItemDescription, setNewItemDescription] = useState('');
   const [aiPrompt, setAiPrompt] = useState('');
 
-  const { generateOutline, isLoading: aiLoading, error: aiError } = useAI();
+  const { generateOutline } = useAI();
+  const supabase = createClient();
 
   useEffect(() => {
     if (bookId) {
@@ -217,9 +218,7 @@ export default function OutlineEditor() {
               >
                 {isGenerating ? '🤖 Generating...' : '✨ Generate AI Outline'}
               </button>
-              {aiError && (
-                <p className="text-amber-600 text-sm bg-amber-50 p-3 rounded border border-amber-200">AI Context not available. Check your setup.</p>
-              )}
+              {/* TODO: Add AI error handling */}
             </div>
           </div>
 

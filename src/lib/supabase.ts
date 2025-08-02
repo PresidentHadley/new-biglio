@@ -1,6 +1,14 @@
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
-export const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+export function createClient() {
+  return createSupabaseClient(supabaseUrl, supabaseAnonKey);
+}
+
+// Server-side client with service role key
+export function createServerClient() {
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  return createSupabaseClient(supabaseUrl, supabaseServiceKey);
+}

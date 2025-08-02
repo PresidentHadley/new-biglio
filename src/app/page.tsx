@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { FaPlay, FaHeart, FaComment, FaBookmark } from 'react-icons/fa';
 import { useBooks } from '@/hooks/useBooks';
 import { AudioPlayerModal } from '@/components/AudioPlayerModal';
-import Link from 'next/link';
+// Removed unused Link import
 
 interface Book {
   id: string;

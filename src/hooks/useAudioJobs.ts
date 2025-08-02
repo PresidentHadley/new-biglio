@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase';
 
 interface AudioJob {
   id: string;
@@ -18,6 +18,7 @@ interface AudioJob {
 export function useAudioJobs(chapterId?: string) {
   const [jobs, setJobs] = useState<AudioJob[]>([]);
   const [loading, setLoading] = useState(false);
+  const supabase = createClient();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

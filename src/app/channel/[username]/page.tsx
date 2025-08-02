@@ -1,0 +1,169 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import { createClient } from '@/lib/supabase';
+import { ChannelHeader } from '@/components/channel/ChannelHeader';
+import { AudioBookList } from '@/components/channel/AudioBookList';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+
+interface Channel {
+  id: string;
+  name: string;
+  username: string;
+  description: string;
+  avatar_url: string;
+  cover_url: string;
+  follower_count: number;
+  following_count: number;
+  book_count: number;
+  created_at: string;
+  user_id: string;
+}
+
+interface Book {
+  id: string;
+  title: string;
+  description: string;
+  cover_url: string;
+  channel_id: string;
+  chapter_count: number;
+  total_duration: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export default function ChannelPage() {
+  const { username } = useParams();
+  const [channel, setChannel] = useState<Channel | null>(null);
+  const [books, setBooks] = useState<Book[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
+
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchChannelData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch channel by username
+        const { data: channelData, error: channelError } = await supabase
+          .from('channels')
+          .select(`
+            *,
+            users!channels_user_id_fkey (
+              id,
+              email
+            )
+          `)
+          .eq('username', username)
+          .single();
+
+        if (channelError) {
+          throw new Error(`Channel not found: ${channelError.message}`);
+        }
+
+        setChannel(channelData);
+
+        // Check if current user is the owner
+        const { data: { user } } = await supabase.auth.getUser();
+        setIsOwner(user?.id === channelData.user_id);
+
+        // Fetch books for this channel
+        const { data: booksData, error: booksError } = await supabase
+          .from('biglios')
+          .select(`
+            id,
+            title,
+            description,
+            cover_url,
+            channel_id,
+            created_at,
+            updated_at,
+            chapters!chapters_biglio_id_fkey (
+              id,
+              duration_seconds
+            )
+          `)
+          .eq('channel_id', channelData.id)
+          .eq('is_published', true)
+          .order('created_at', { ascending: false });
+
+        if (booksError) {
+          throw new Error(`Failed to fetch books: ${booksError.message}`);
+        }
+
+        // Calculate chapter count and total duration for each book
+        const booksWithStats = booksData.map(book => ({
+          ...book,
+          chapter_count: book.chapters?.length || 0,
+          total_duration: book.chapters?.reduce((total: number, chapter: { duration_seconds?: number }) => 
+            total + (chapter.duration_seconds || 0), 0) || 0
+        }));
+
+        setBooks(booksWithStats);
+
+      } catch (err) {
+        console.error('Error fetching channel data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load channel');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (username) {
+      fetchChannelData();
+    }
+  }, [username, supabase]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Channel Not Found</h1>
+          <p className="text-gray-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!channel) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Channel Not Found</h1>
+          <p className="text-gray-600">This channel does not exist or has been removed.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Channel Header */}
+      <ChannelHeader 
+        channel={channel}
+        isOwner={isOwner}
+        bookCount={books.length}
+      />
+
+      {/* Books/Audio Content */}
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <AudioBookList 
+          books={books}
+          isOwner={isOwner}
+        />
+      </div>
+    </div>
+  );
+}

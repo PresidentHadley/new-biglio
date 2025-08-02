@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase';
 
 interface Book {
   id: string;
@@ -32,6 +32,7 @@ interface Chapter {
 export function useBooks() {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
+  const supabase = createClient();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -128,8 +129,9 @@ export function useChapters(bookId: string) {
   const fetchChapters = async (bookId: string) => {
     try {
       setLoading(true);
+      const client = createClient();
       
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('chapters')
         .select('*')
         .eq('biglio_id', bookId)

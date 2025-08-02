@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase';
 import { 
   FaPlay, 
   FaPause, 
@@ -54,12 +54,13 @@ export function AudioPlayerModal({ book, isOpen, onClose }: AudioPlayerModalProp
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
-  const [showChapterList, setShowChapterList] = useState(false);
+  // const [showChapterList, setShowChapterList] = useState(false); // Future feature
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement>(null);
+  const supabase = createClient();
 
   useEffect(() => {
     if (book && isOpen) {

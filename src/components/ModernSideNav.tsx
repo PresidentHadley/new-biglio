@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { 
   FaHome, 
   FaUser, 
-  FaEdit, 
+  // FaEdit, // Commented out unused import 
   FaUsers, 
   FaInfoCircle,
   FaSignInAlt,

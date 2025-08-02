@@ -79,7 +79,7 @@ Please create an engaging, well-structured outline that will captivate audio lis
       const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
       const jsonString = jsonMatch ? jsonMatch[0] : aiResponse;
       outline = JSON.parse(jsonString);
-    } catch (parseError) {
+    } catch {
       // If JSON parsing fails, return the raw response
       outline = {
         rawResponse: aiResponse,

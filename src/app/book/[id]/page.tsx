@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase';
 import Link from 'next/link';
 
 import { AudioGenerationButton } from '@/components/AudioGenerationButton';
@@ -31,6 +31,7 @@ export default function BookEditor() {
   const bookId = params.id as string;
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
+  const supabase = createClient();
   const [isLoading, setIsLoading] = useState(true);
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -315,10 +316,30 @@ Please write a compelling ending that flows naturally from the existing content 
                   )}
                   {chapter.content.trim() && chapter.content.length <= 7500 && !chapter.audio_url && (
                     <button
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.stopPropagation();
-                        // Generate audio for this chapter
-                        console.log('Generate audio for chapter:', chapter.id);
+                        try {
+                          const response = await fetch('/api/audio/generate', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              chapterId: chapter.id,
+                              text: chapter.content,
+                              voice: 'female'
+                            })
+                          });
+                          
+                          if (response.ok) {
+                            const result = await response.json();
+                            console.log('Audio generated:', result.audioUrl);
+                            // Refresh chapters to show new audio
+                            fetchChapters();
+                          } else {
+                            console.error('Audio generation failed');
+                          }
+                        } catch (error) {
+                          console.error('Error generating audio:', error);
+                        }
                       }}
                       className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded-full transition-colors"
                       title="Generate audio"
