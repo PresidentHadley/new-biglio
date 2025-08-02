@@ -28,11 +28,7 @@ export default function RootLayout({
       <body className={inter.className} suppressHydrationWarning={true}>
         <AIProvider>
           <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white">
-            <ModernNavBar 
-              // TODO: Add authentication context
-              isAuthenticated={false}
-              user={null}
-            />
+                      <ModernNavBar />
             {children}
           </div>
         </AIProvider>

@@ -4,25 +4,17 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { FaBars, FaBell, FaSearch, FaEdit } from 'react-icons/fa';
 import { ModernSideNav } from './ModernSideNav';
+import { AuthModal } from './AuthModal';
+import { useAuth } from '@/context/AuthContext';
 
-interface ModernNavBarProps {
-  user?: {
-    username?: string;
-    email?: string;
-    avatar?: string;
-  } | null;
-  isAuthenticated?: boolean;
-  onSignIn?: () => void;
-  onSignOut?: () => void;
-}
+// ModernNavBar now manages its own auth state
 
-export function ModernNavBar({ 
-  user, 
-  isAuthenticated = false,
-  onSignIn,
-  onSignOut 
-}: ModernNavBarProps) {
+export function ModernNavBar() {
+  const { user, signOut } = useAuth();
   const [isSideNavOpen, setIsSideNavOpen] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  
+  const isAuthenticated = !!user;
 
   const openSideNav = () => setIsSideNavOpen(true);
   const closeSideNav = () => setIsSideNavOpen(false);
@@ -101,17 +93,9 @@ export function ModernNavBar({
                 className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center overflow-hidden"
                 aria-label="Open user menu"
               >
-                {user.avatar ? (
-                  <img
-                    src={user.avatar}
-                    alt={user.username}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-white text-sm font-bold">
-                    {user.username?.charAt(0).toUpperCase() || 'U'}
-                  </span>
-                )}
+                <span className="text-white text-sm font-bold">
+                  {user.email?.charAt(0).toUpperCase() || 'U'}
+                </span>
               </button>
             )}
           </div>
@@ -122,10 +106,17 @@ export function ModernNavBar({
       <ModernSideNav
         isOpen={isSideNavOpen}
         onClose={closeSideNav}
-        user={user}
+        user={user ? { email: user.email, username: user.email?.split('@')[0] } : null}
         isAuthenticated={isAuthenticated}
-        onSignIn={onSignIn}
-        onSignOut={onSignOut}
+        onSignIn={() => setShowAuthModal(true)}
+        onSignOut={signOut}
+      />
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={() => setShowAuthModal(false)}
       />
 
       {/* Spacer to prevent content from being hidden under fixed navbar */}
