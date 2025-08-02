@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef, useContext } from 'react';
-import { AIContext } from '@/context/AIContext';
+import { useState, useEffect, useRef } from 'react';
+import { useAI } from '@/context/AIContext';
 import { 
   FaPaperPlane, 
   FaUser, 
@@ -48,9 +48,8 @@ export function AIAssistantChat({
 }: AIAssistantChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const aiContext = useContext(AIContext);
+  const { sendMessage: sendAIMessage, isLoading, error } = useAI();
 
   const quickPrompts = [
     { icon: FaLightbulb, text: "Give me ideas for this chapter", prompt: "What are some creative ideas I could explore in this chapter?" },
@@ -102,7 +101,7 @@ export function AIAssistantChat({
   };
 
   const sendMessage = async (content: string) => {
-    if (!content.trim() || !aiContext) return;
+    if (!content.trim() || isLoading) return;
 
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -113,7 +112,6 @@ export function AIAssistantChat({
 
     setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
-    setIsLoading(true);
 
     try {
       const context = buildContext();
@@ -123,7 +121,7 @@ User question: ${content}
 
 Please provide helpful, specific advice for their writing. Be encouraging and constructive.`;
 
-      const response = await aiContext.sendMessage(contextualPrompt, context);
+      const response = await sendAIMessage(contextualPrompt, context);
 
       const assistantMessage: ChatMessage = {
         id: `assistant-${Date.now()}`,
@@ -142,8 +140,6 @@ Please provide helpful, specific advice for their writing. Be encouraging and co
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -254,19 +250,19 @@ Please provide helpful, specific advice for their writing. Be encouraging and co
             placeholder="Ask for writing help, ideas, or feedback..."
             className="flex-1 resize-none p-3 border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none"
             rows={2}
-            disabled={isLoading || !aiContext}
+            disabled={isLoading}
           />
           <button
             onClick={() => sendMessage(inputMessage)}
-            disabled={!inputMessage.trim() || isLoading || !aiContext}
+            disabled={!inputMessage.trim() || isLoading}
             className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
           >
             <FaPaperPlane size={14} />
           </button>
         </div>
-        {!aiContext && (
-          <p className="text-sm text-amber-600 mt-2">
-            AI assistant is not available. Check your setup.
+        {error && (
+          <p className="text-sm text-red-600 mt-2">
+            Error: {error}
           </p>
         )}
       </div>
