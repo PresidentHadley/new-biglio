@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 
 interface Book {
@@ -15,8 +17,11 @@ interface Book {
 }
 
 export default function Dashboard() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [books, setBooks] = useState<Book[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [userChannel, setUserChannel] = useState<{id: string; name: string; username: string} | null>(null);
   const supabase = createClient();
   const [isCreating, setIsCreating] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -24,8 +29,61 @@ export default function Dashboard() {
   const [newBookDescription, setNewBookDescription] = useState('');
 
   useEffect(() => {
-    fetchBooks();
-  }, []);
+    if (!authLoading && !user) {
+      router.push('/auth');
+      return;
+    }
+    
+    if (user) {
+      checkUserChannel();
+    }
+  }, [user, authLoading, router]);
+
+  const checkUserChannel = async () => {
+    if (!user) return;
+
+    try {
+      // Check if user has a channel
+      const { data: channel, error } = await supabase
+        .from('channels')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        throw error;
+      }
+
+      if (!channel) {
+        // No channel found, redirect to setup
+        router.push('/setup-user');
+        return;
+      }
+
+      setUserChannel(channel);
+      fetchBooksForChannel(channel.id);
+    } catch (err) {
+      console.error('Error checking user channel:', err);
+      setIsLoading(false);
+    }
+  };
+
+  const fetchBooksForChannel = async (channelId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('biglios')
+        .select('*')
+        .eq('channel_id', channelId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setBooks(data || []);
+    } catch (err) {
+      console.error('Error fetching books:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const fetchBooks = async () => {
     try {

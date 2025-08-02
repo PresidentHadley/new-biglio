@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 
 import { AudioGenerationButton } from '@/components/AudioGenerationButton';
@@ -28,6 +29,8 @@ interface Chapter {
 
 export default function BookEditor() {
   const params = useParams();
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const bookId = params.id as string;
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
@@ -87,12 +90,17 @@ export default function BookEditor() {
   };
 
   useEffect(() => {
-    if (bookId) {
+    if (!authLoading && !user) {
+      router.push('/auth');
+      return;
+    }
+    
+    if (bookId && user) {
       fetchBookData();
       fetchChapters();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookId]);
+  }, [bookId, user, authLoading]);
 
   const createChapter = async () => {
     if (!newChapterTitle.trim() || !book) return;
