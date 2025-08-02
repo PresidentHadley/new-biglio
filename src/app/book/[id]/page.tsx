@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { AIContext } from '@/context/AIContext';
-import { useContext } from 'react';
+
 import { AudioGenerationButton } from '@/components/AudioGenerationButton';
 import { AIAssistantChat } from '@/components/AIAssistantChat';
 
@@ -241,9 +240,25 @@ export default function BookEditor() {
                 selectedChapter?.id === chapter.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
               }`}
             >
-              <h3 className="text-gray-900 font-semibold truncate">{chapter.title}</h3>
-              <p className="text-gray-600 text-sm">Chapter {chapter.chapter_number}</p>
-              <p className="text-gray-500 text-xs">{chapter.content.length} characters</p>
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-gray-900 font-semibold truncate">{chapter.title}</h3>
+                  <p className="text-gray-600 text-sm">Chapter {chapter.chapter_number}</p>
+                  <p className="text-gray-500 text-xs">{chapter.content.length} characters</p>
+                </div>
+                <div className="flex flex-col gap-1 ml-2">
+                  {chapter.content.trim() && (
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                      ✍️
+                    </span>
+                  )}
+                  {chapter.audio_url && (
+                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                      🔊
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -268,9 +283,13 @@ export default function BookEditor() {
                     🤖 AI Assistant
                   </button>
                   <AudioGenerationButton
-                    text={selectedChapter.content}
-                    onSuccess={(audioUrl) => {
+                    chapterId={selectedChapter.id}
+                    chapterTitle={selectedChapter.title}
+                    chapterContent={selectedChapter.content}
+                    existingAudioUrl={selectedChapter.audio_url}
+                    onAudioGenerated={(audioUrl) => {
                       console.log('Audio generated:', audioUrl);
+                      setSelectedChapter(prev => prev ? { ...prev, audio_url: audioUrl } : null);
                       fetchChapters();
                     }}
                   />
@@ -302,19 +321,36 @@ export default function BookEditor() {
                       className="w-full h-96 p-4 bg-white text-gray-900 rounded border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none resize-none leading-relaxed"
                       placeholder="Start writing your chapter..."
                     />
-                    <div className="flex gap-3">
-                      <button
-                        onClick={saveChapter}
-                        className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold transition-colors"
-                      >
-                        💾 Save Chapter
-                      </button>
-                      <button
-                        onClick={() => setIsEditing(false)}
-                        className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-semibold transition-colors"
-                      >
-                        Cancel
-                      </button>
+                    <div className="space-y-4">
+                      <div className="flex gap-3">
+                        <button
+                          onClick={saveChapter}
+                          className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold transition-colors"
+                        >
+                          💾 Save Chapter
+                        </button>
+                        <button
+                          onClick={() => setIsEditing(false)}
+                          className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-semibold transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      
+                      {/* Audio Generation in Edit Mode */}
+                      <div className="pt-4 border-t border-gray-200">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Audio Generation</h4>
+                        <AudioGenerationButton
+                          chapterId={selectedChapter.id}
+                          chapterTitle={editTitle}
+                          chapterContent={editContent}
+                          existingAudioUrl={selectedChapter.audio_url}
+                          onAudioGenerated={(audioUrl) => {
+                            // Update the chapter with the new audio URL
+                            setSelectedChapter(prev => prev ? { ...prev, audio_url: audioUrl } : null);
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -328,12 +364,27 @@ export default function BookEditor() {
                         <p className="text-gray-500 italic bg-gray-50 p-6 rounded border border-gray-200">No content yet. Click &quot;Edit&quot; to start writing.</p>
                       )}
                     </div>
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold transition-colors"
-                    >
-                      ✏️ Edit Chapter
-                    </button>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        onClick={() => setIsEditing(true)}
+                        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold transition-colors"
+                      >
+                        ✏️ Edit Chapter
+                      </button>
+                      
+                      {/* Audio Generation */}
+                      <AudioGenerationButton
+                        chapterId={selectedChapter.id}
+                        chapterTitle={selectedChapter.title}
+                        chapterContent={selectedChapter.content}
+                        existingAudioUrl={selectedChapter.audio_url}
+                        onAudioGenerated={(audioUrl) => {
+                          // Update the chapter with the new audio URL
+                          setSelectedChapter(prev => prev ? { ...prev, audio_url: audioUrl } : null);
+                          fetchChapters(); // Refresh chapters to update UI
+                        }}
+                      />
+                    </div>
                   </div>
                 )}
               </div>

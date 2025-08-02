@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { AIContext } from '@/context/AIContext';
+import { useAI } from '@/context/AIContext';
 import Link from 'next/link';
 
 interface Book {
@@ -32,7 +32,7 @@ export default function OutlineEditor() {
   const [newItemDescription, setNewItemDescription] = useState('');
   const [aiPrompt, setAiPrompt] = useState('');
 
-  const aiContext = useContext(AIContext);
+  const { generateOutline, isLoading: aiLoading, error: aiError } = useAI();
 
   useEffect(() => {
     if (bookId) {
@@ -70,14 +70,14 @@ export default function OutlineEditor() {
   };
 
   const generateAIOutline = async () => {
-    if (!aiContext || !book) return;
+    if (!book) return;
 
     try {
       setIsGenerating(true);
       
       const promptText = aiPrompt || `Generate a comprehensive outline for a book titled "${book.title}"${book.description ? ` with the description: ${book.description}` : ''}. Create 8-12 chapters with engaging titles and detailed descriptions.`;
 
-      const result = await aiContext.generateOutline(
+      const result = await generateOutline(
         book.title,
         book.description || '',
         {
@@ -212,12 +212,12 @@ export default function OutlineEditor() {
               />
               <button
                 onClick={generateAIOutline}
-                disabled={isGenerating || !aiContext}
+                disabled={isGenerating}
                 className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded-lg font-semibold transition-colors"
               >
                 {isGenerating ? '🤖 Generating...' : '✨ Generate AI Outline'}
               </button>
-              {!aiContext && (
+              {aiError && (
                 <p className="text-amber-600 text-sm bg-amber-50 p-3 rounded border border-amber-200">AI Context not available. Check your setup.</p>
               )}
             </div>
