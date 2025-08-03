@@ -286,34 +286,34 @@ export default function UnifiedBookEditor() {
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* Header with Mode Toggle */}
-      <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0">
-        <div className="flex justify-between items-center">
+      <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0 shadow-sm">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="text-blue-600 hover:text-blue-800 text-sm">← Dashboard</Link>
-            <h1 className="text-2xl font-bold text-gray-900">{book.title}</h1>
+            <Link href="/dashboard" className="text-blue-600 hover:text-blue-800 text-sm font-medium">← Dashboard</Link>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{book.title}</h1>
           </div>
           
-          {/* Mode Toggle */}
-          <div className="flex gap-2">
+          {/* Mode Toggle - Always Visible */}
+          <div className="flex gap-2 border-2 border-gray-200 rounded-lg p-1 bg-gray-50">
             <button
               onClick={() => setMode('outline')}
-              className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
+              className={`px-4 py-2 rounded-md font-semibold transition-all duration-200 ${
                 mode === 'outline' 
-                  ? 'bg-purple-600 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  ? 'bg-purple-600 text-white shadow-md transform scale-105' 
+                  : 'bg-white text-gray-700 hover:bg-gray-100 hover:text-purple-600'
               }`}
             >
-              📋 Outline Mode
+              📋 Outline
             </button>
             <button
               onClick={() => setMode('write')}
-              className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
+              className={`px-4 py-2 rounded-md font-semibold transition-all duration-200 ${
                 mode === 'write' 
-                  ? 'bg-green-600 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  ? 'bg-green-600 text-white shadow-md transform scale-105' 
+                  : 'bg-white text-gray-700 hover:bg-gray-100 hover:text-green-600'
               }`}
             >
-              ✍️ Write Mode
+              ✍️ Write
             </button>
           </div>
         </div>
