@@ -31,6 +31,18 @@ interface Book {
   updated_at: string;
 }
 
+interface SupabaseBook {
+  id: string;
+  title: string;
+  description: string;
+  cover_url: string;
+  channel_id: string;
+  created_at: string;
+  updated_at: string;
+  total_chapters: number;
+  total_duration_seconds: number;
+}
+
 export default function ChannelPage() {
   const { username } = useParams();
   const [channel, setChannel] = useState<Channel | null>(null);
@@ -82,7 +94,7 @@ export default function ChannelPage() {
         }
 
         // Map books with stats from database fields (no complex joins needed)  
-        const booksWithStats = booksData?.map((book: any) => ({
+        const booksWithStats = (booksData as SupabaseBook[])?.map(book => ({
           ...book,
           chapter_count: book.total_chapters || 0,
           total_duration: book.total_duration_seconds || 0
