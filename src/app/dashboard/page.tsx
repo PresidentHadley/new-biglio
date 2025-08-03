@@ -69,8 +69,8 @@ export default function Dashboard() {
         return;
       }
 
-      setUserChannel(channel);
-      fetchBooksForChannel(channel.id);
+      setUserChannel(channel as {id: string; handle: string; display_name: string});
+      fetchBooksForChannel((channel as {id: string; handle: string; display_name: string}).id);
     } catch (err) {
       console.error('Error checking user channel:', err);
       setIsLoading(false);
