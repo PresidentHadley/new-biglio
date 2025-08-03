@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import '../styles/SmartContactWidget.css';
 import { AIProvider } from '@/context/AIContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { ModernNavBar } from '@/components/ModernNavBar';
+import SmartContactWidget from '@/components/SmartContactWidget';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -32,6 +34,7 @@ export default function RootLayout({
             <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white">
               <ModernNavBar />
               {children}
+              <SmartContactWidget />
             </div>
           </AIProvider>
         </AuthProvider>

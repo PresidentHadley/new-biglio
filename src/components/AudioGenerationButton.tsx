@@ -7,9 +7,12 @@ interface AudioGenerationButtonProps {
   chapterId: string;
   chapterTitle: string;
   chapterContent: string;
+  bookId: string;
+  bookVoicePreference?: 'male' | 'female' | null;
   existingAudioUrl?: string;
   disabled?: boolean;
   onAudioGenerated?: (audioUrl: string) => void;
+  onVoicePreferenceSet?: (voice: 'male' | 'female') => void;
   className?: string;
 }
 
@@ -17,18 +20,24 @@ export function AudioGenerationButton({
   chapterId,
   chapterTitle,
   chapterContent,
+  bookId,
+  bookVoicePreference,
   existingAudioUrl,
   disabled = false,
   onAudioGenerated,
+  onVoicePreferenceSet,
   className = ''
 }: AudioGenerationButtonProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(existingAudioUrl || null);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<string>('');
-  const [selectedVoice, setSelectedVoice] = useState<'male' | 'female'>('female');
+  const [showVoiceSelection, setShowVoiceSelection] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+
+  // Get the voice to use (book preference or default)
+  const voiceToUse = bookVoicePreference || 'female';
 
   const generateAudio = async () => {
     if (!chapterContent.trim()) {
@@ -41,6 +50,16 @@ export function AudioGenerationButton({
       return;
     }
 
+    // If no voice preference is set for this book, show selection modal
+    if (!bookVoicePreference) {
+      setShowVoiceSelection(true);
+      return;
+    }
+
+    await performAudioGeneration(voiceToUse);
+  };
+
+  const performAudioGeneration = async (voice: 'male' | 'female') => {
     setIsGenerating(true);
     setError(null);
     setProgress('Generating high-quality audio...');
@@ -54,7 +73,7 @@ export function AudioGenerationButton({
         body: JSON.stringify({
           chapterId,
           text: chapterContent,
-          voice: selectedVoice
+          voice: voice
         }),
       });
 
@@ -82,6 +101,31 @@ export function AudioGenerationButton({
       setError(err instanceof Error ? err.message : 'Failed to generate audio');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleVoiceSelection = async (voice: 'male' | 'female') => {
+    try {
+      // Save voice preference to the book
+      const response = await fetch(`/api/books/${bookId}/voice-preference`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voicePreference: voice })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save voice preference');
+      }
+
+      // Notify parent component
+      onVoicePreferenceSet?.(voice);
+      
+      // Close modal and proceed with audio generation
+      setShowVoiceSelection(false);
+      await performAudioGeneration(voice);
+    } catch (err) {
+      console.error('Error setting voice preference:', err);
+      setError('Failed to save voice preference. Please try again.');
     }
   };
 
@@ -152,40 +196,65 @@ export function AudioGenerationButton({
   };
 
   return (
-    <div className={`space-y-3 ${className}`}>
-      {/* Voice Selection - Always Visible */}
-      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-        <span className="text-sm font-medium text-gray-700">Voice:</span>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setSelectedVoice('female')}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
-              selectedVoice === 'female' 
-                ? 'bg-pink-100 text-pink-800 border border-pink-300' 
-                : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            <FaFemale size={14} />
-            Female
-          </button>
-          <button
-            onClick={() => setSelectedVoice('male')}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
-              selectedVoice === 'male' 
-                ? 'bg-blue-100 text-blue-800 border border-blue-300' 
-                : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            <FaMale size={14} />
-            Male
-          </button>
+    <>
+      {/* Voice Selection Modal - One-time choice */}
+      {showVoiceSelection && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Choose Voice for This Biglio</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              This will be used for all chapters in this biglio. You can change it later in book settings.
+            </p>
+            
+            <div className="space-y-3">
+              <button
+                onClick={() => handleVoiceSelection('female')}
+                className="w-full flex items-center gap-3 p-4 bg-pink-50 border border-pink-200 rounded-lg hover:bg-pink-100 transition-colors"
+              >
+                <FaFemale className="text-pink-600" size={18} />
+                <div className="text-left">
+                  <div className="font-medium text-gray-900">Female Voice</div>
+                  <div className="text-sm text-gray-600">Warm, professional female narrator</div>
+                </div>
+              </button>
+              
+              <button
+                onClick={() => handleVoiceSelection('male')}
+                className="w-full flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+              >
+                <FaMale className="text-blue-600" size={18} />
+                <div className="text-left">
+                  <div className="font-medium text-gray-900">Male Voice</div>
+                  <div className="text-sm text-gray-600">Deep, engaging male narrator</div>
+                </div>
+              </button>
+            </div>
+            
+            <button
+              onClick={() => setShowVoiceSelection(false)}
+              className="mt-4 w-full px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
-        {audioUrl && (
-          <span className="text-xs text-gray-500 ml-2">
-            (for regeneration)
-          </span>
+      )}
+
+      <div className={`space-y-3 ${className}`}>
+        {/* Voice Preference Display */}
+        {bookVoicePreference && (
+          <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
+            <span className="text-xs font-medium text-gray-600">Voice:</span>
+            <div className="flex items-center gap-1">
+              {bookVoicePreference === 'female' ? (
+                <FaFemale className="text-pink-600" size={12} />
+              ) : (
+                <FaMale className="text-blue-600" size={12} />
+              )}
+              <span className="text-xs text-gray-700 capitalize">{bookVoicePreference}</span>
+            </div>
+          </div>
         )}
-      </div>
 
       {/* Main Action Button */}
       <div className="flex gap-2">
@@ -198,12 +267,12 @@ export function AudioGenerationButton({
             {isGenerating ? (
               <>
                 <FaSpinner className="animate-spin" size={16} />
-                Generating {selectedVoice} voice...
+                Generating {voiceToUse} voice...
               </>
             ) : (
               <>
                 <FaVolumeUp size={16} />
-                Generate {selectedVoice === 'female' ? '👩' : '👨'} Audio
+                Generate {voiceToUse === 'female' ? '👩' : '👨'} Audio
               </>
             )}
           </button>
@@ -279,12 +348,13 @@ export function AudioGenerationButton({
         </div>
       )}
 
-      {/* Instructions */}
-      {!audioUrl && !isGenerating && (
-        <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-          💡 Generate high-quality audio narration for this chapter using advanced text-to-speech technology. Audio will be optimized for audiobook listening.
-        </div>
-      )}
-    </div>
+        {/* Instructions */}
+        {!audioUrl && !isGenerating && (
+          <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+            💡 Generate high-quality audio narration for this chapter using advanced text-to-speech technology. Audio will be optimized for audiobook listening.
+          </div>
+        )}
+      </div>
+    </>
   );
 }

@@ -30,6 +30,7 @@ interface Book {
   description?: string;
   total_chapters: number;
   is_published: boolean;
+  voice_preference?: 'male' | 'female' | null;
 }
 
 interface Chapter {
@@ -79,7 +80,7 @@ export default function UnifiedBookEditor() {
     try {
       const { data, error } = await supabase
         .from('biglios')
-        .select('id, title, description, total_chapters, is_published')
+        .select('id, title, description, total_chapters, is_published, voice_preference')
         .eq('id', bookId)
         .single();
       
@@ -549,11 +550,16 @@ export default function UnifiedBookEditor() {
                         chapterId={selectedChapter.id}
                         chapterTitle={editTitle}
                         chapterContent={editContent}
+                        bookId={book.id}
+                        bookVoicePreference={book.voice_preference}
                         existingAudioUrl={selectedChapter.audio_url}
                         disabled={isOverLimit()}
                         onAudioGenerated={(audioUrl) => {
                           setSelectedChapter(prev => prev ? { ...prev, audio_url: audioUrl } : null);
                           fetchChapters();
+                        }}
+                        onVoicePreferenceSet={(voice) => {
+                          setBook(prev => prev ? { ...prev, voice_preference: voice } : null);
                         }}
                       />
                     </div>
