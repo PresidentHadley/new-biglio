@@ -39,7 +39,7 @@ export default function Dashboard() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setBiglios(data || []);
+      setBiglios((data as Biglio[]) || []);
     } catch (err) {
       console.error('Error fetching biglios:', err);
     } finally {

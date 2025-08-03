@@ -80,9 +80,10 @@ export default function BookEditor() {
       
       // Select first chapter by default
       if (data && data.length > 0 && !selectedChapter) {
-        setSelectedChapter(data[0]);
-        setEditTitle(data[0].title);
-        setEditContent(data[0].content);
+        const chapters = data as Chapter[];
+        setSelectedChapter(chapters[0]);
+        setEditTitle(chapters[0].title);
+        setEditContent(chapters[0].content);
       }
     } catch (error) {
       console.error('Error fetching chapters:', error);
