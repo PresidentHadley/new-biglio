@@ -20,6 +20,19 @@ interface Book {
   };
 }
 
+interface SupabaseBiglio {
+  id: string;
+  title: string;
+  description: string;
+  cover_url?: string;
+  total_chapters: number;
+  like_count: number;
+  comment_count: number;
+  save_count: number;
+  published_at: string;
+  channel_id: string;
+}
+
 interface Chapter {
   id: string;
   title: string;
