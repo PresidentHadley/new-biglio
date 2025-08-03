@@ -51,7 +51,7 @@ export default function OutlineEditor() {
         .single();
       
       if (error) throw error;
-      setBook(data);
+      setBook(data as Book);
     } catch (error) {
       console.error('Error fetching book:', error);
     }
