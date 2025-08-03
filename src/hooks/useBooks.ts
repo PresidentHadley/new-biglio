@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase';
 
 interface Book {
@@ -48,11 +48,7 @@ export function useBooks() {
   const supabase = createClient();
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchBooks();
-  }, [fetchBooks]);
-
-  const fetchBooks = async () => {
+  const fetchBooks = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -123,7 +119,11 @@ export function useBooks() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchBooks();
+  }, [fetchBooks]);
 
   return { books, loading, error, refetch: fetchBooks };
 }
