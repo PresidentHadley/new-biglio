@@ -72,19 +72,7 @@ export default function ChannelPage() {
         // Fetch books for this channel
         const { data: booksData, error: booksError } = await supabase
           .from('biglios')
-          .select(`
-            id,
-            title,
-            description,
-            cover_url,
-            channel_id,
-            created_at,
-            updated_at,
-            chapters (
-              id,
-              duration_seconds
-            )
-          `)
+          .select('id, title, description, cover_url, channel_id, created_at, updated_at, total_chapters, total_duration_seconds')
           .eq('channel_id', channel.id)
           .eq('is_published', true)
           .order('created_at', { ascending: false });
@@ -93,12 +81,11 @@ export default function ChannelPage() {
           throw new Error(`Failed to fetch books: ${booksError.message}`);
         }
 
-        // Calculate chapter count and total duration for each book
+        // Map books with stats from database fields (no complex joins needed)
         const booksWithStats = booksData.map(book => ({
           ...book,
-          chapter_count: book.chapters?.length || 0,
-          total_duration: book.chapters?.reduce((total: number, chapter: { duration_seconds?: number }) => 
-            total + (chapter.duration_seconds || 0), 0) || 0
+          chapter_count: book.total_chapters || 0,
+          total_duration: book.total_duration_seconds || 0
         }));
 
         setBooks(booksWithStats);
