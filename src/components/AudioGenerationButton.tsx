@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { FaPlay, FaSpinner, FaVolumeUp, FaDownload } from 'react-icons/fa';
+import { useState, useEffect } from 'react';
+import { FaPlay, FaPause, FaSpinner, FaVolumeUp, FaDownload, FaMale, FaFemale } from 'react-icons/fa';
 
 interface AudioGenerationButtonProps {
   chapterId: string;
@@ -26,6 +26,9 @@ export function AudioGenerationButton({
   const [audioUrl, setAudioUrl] = useState<string | null>(existingAudioUrl || null);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<string>('');
+  const [selectedVoice, setSelectedVoice] = useState<'male' | 'female'>('female');
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
 
   const generateAudio = async () => {
     if (!chapterContent.trim()) {
@@ -51,7 +54,7 @@ export function AudioGenerationButton({
         body: JSON.stringify({
           chapterId,
           text: chapterContent,
-          voice: 'female' // Default to female voice
+          voice: selectedVoice
         }),
       });
 
@@ -82,14 +85,57 @@ export function AudioGenerationButton({
     }
   };
 
-  // Remove polling function since our API completes synchronously
+  // Global audio control - stop all other audio when starting new one
+  useEffect(() => {
+    return () => {
+      // Cleanup: pause any playing audio when component unmounts
+      if (currentAudio) {
+        currentAudio.pause();
+      }
+    };
+  }, [currentAudio]);
 
-  const playAudio = () => {
-    if (audioUrl) {
-      const audio = new Audio(audioUrl);
-      audio.play().catch(err => {
+  const togglePlayPause = () => {
+    if (!audioUrl) return;
+
+    if (currentAudio && !currentAudio.paused) {
+      // Currently playing - pause it
+      currentAudio.pause();
+      setIsPlaying(false);
+    } else {
+      // Stop any other audio that might be playing globally
+      const allAudioElements = document.querySelectorAll('audio');
+      allAudioElements.forEach(audio => {
+        if (!audio.paused) {
+          audio.pause();
+        }
+      });
+
+      // Create new audio or resume existing
+      let audio = currentAudio;
+      if (!audio) {
+        audio = new Audio(audioUrl);
+        setCurrentAudio(audio);
+        
+        // Set up event listeners
+        audio.addEventListener('ended', () => {
+          setIsPlaying(false);
+        });
+        
+        audio.addEventListener('error', (err) => {
+          console.error('Error playing audio:', err);
+          setError('Failed to play audio');
+          setIsPlaying(false);
+        });
+      }
+
+      // Play the audio
+      audio.play().then(() => {
+        setIsPlaying(true);
+      }).catch(err => {
         console.error('Error playing audio:', err);
         setError('Failed to play audio');
+        setIsPlaying(false);
       });
     }
   };
@@ -107,6 +153,37 @@ export function AudioGenerationButton({
 
   return (
     <div className={`space-y-3 ${className}`}>
+      {/* Voice Selection */}
+      {!audioUrl && (
+        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <span className="text-sm font-medium text-gray-700">Voice:</span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setSelectedVoice('female')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
+                selectedVoice === 'female' 
+                  ? 'bg-pink-100 text-pink-800 border border-pink-300' 
+                  : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <FaFemale size={14} />
+              Female
+            </button>
+            <button
+              onClick={() => setSelectedVoice('male')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
+                selectedVoice === 'male' 
+                  ? 'bg-blue-100 text-blue-800 border border-blue-300' 
+                  : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <FaMale size={14} />
+              Male
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Action Button */}
       <div className="flex gap-2">
         {!audioUrl ? (
@@ -118,23 +195,36 @@ export function AudioGenerationButton({
             {isGenerating ? (
               <>
                 <FaSpinner className="animate-spin" size={16} />
-                Generating...
+                Generating {selectedVoice} voice...
               </>
             ) : (
               <>
                 <FaVolumeUp size={16} />
-                Generate Audio
+                Generate {selectedVoice === 'female' ? '👩' : '👨'} Audio
               </>
             )}
           </button>
         ) : (
           <div className="flex gap-2">
             <button
-              onClick={playAudio}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
+              onClick={togglePlayPause}
+              className={`flex items-center gap-2 px-4 py-2 text-white rounded-lg font-semibold transition-colors ${
+                isPlaying 
+                  ? 'bg-orange-600 hover:bg-orange-700' 
+                  : 'bg-green-600 hover:bg-green-700'
+              }`}
             >
-              <FaPlay size={16} />
-              Play Audio
+              {isPlaying ? (
+                <>
+                  <FaPause size={16} />
+                  Pause
+                </>
+              ) : (
+                <>
+                  <FaPlay size={16} />
+                  Play
+                </>
+              )}
             </button>
             <button
               onClick={downloadAudio}

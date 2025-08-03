@@ -168,17 +168,6 @@ export function AIAssistantChat({
     scrollToBottom();
   }, [messages]);
 
-  useEffect(() => {
-    // Update welcome message when mode, book, or chapter changes
-    const welcomeMessage: ChatMessage = {
-      id: `welcome-${Date.now()}`,
-      role: 'assistant',
-      content: getWelcomeMessage(),
-      timestamp: new Date()
-    };
-    setMessages([welcomeMessage]);
-  }, [getWelcomeMessage]);
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -224,6 +213,17 @@ Let's create something amazing!`;
       return `✍️ **Writing Mode**\n\nI'm ready to help you write! What would you like to work on?`;
     }
   }, [mode, book, currentChapter, contextMode]);
+
+  useEffect(() => {
+    // Update welcome message when mode, book, or chapter changes
+    const welcomeMessage: ChatMessage = {
+      id: `welcome-${Date.now()}`,
+      role: 'assistant',
+      content: getWelcomeMessage(),
+      timestamp: new Date()
+    };
+    setMessages([welcomeMessage]);
+  }, [getWelcomeMessage]);
 
   const buildContext = () => {
     return {
