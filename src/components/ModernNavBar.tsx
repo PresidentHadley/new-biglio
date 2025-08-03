@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { FaBars, FaBell, FaSearch, FaEdit } from 'react-icons/fa';
+import { FaBars, FaBell, FaSearch } from 'react-icons/fa';
 import { ModernSideNav } from './ModernSideNav';
 import { AuthModal } from './AuthModal';
 import { useAuth } from '@/context/AuthContext';
@@ -54,23 +54,7 @@ export function ModernNavBar() {
               <FaSearch className="text-gray-700 dark:text-gray-300" size={18} />
             </button>
 
-            {/* Write/Create Button */}
-            <Link
-              href="/dashboard"
-              className="hidden sm:flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all"
-            >
-              <FaEdit size={16} />
-              <span className="hidden md:inline">Write</span>
-            </Link>
 
-            {/* Mobile Write Button */}
-            <Link
-              href="/dashboard"
-              className="sm:hidden p-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 transition-all"
-              aria-label="Write new book"
-            >
-              <FaEdit size={18} />
-            </Link>
 
             {/* Notifications (if authenticated) */}
             {isAuthenticated && (

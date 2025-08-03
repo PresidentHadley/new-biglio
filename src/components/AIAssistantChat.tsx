@@ -358,87 +358,86 @@ Let's create something amazing!`;
 
   return (
     <div className={`flex flex-col h-full bg-white ${className}`}>
-      {/* Header */}
-      <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50">
-        <div className="flex items-center justify-between">
+      {/* Combined Header & Quick Actions */}
+      <div className="p-3 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50 flex-shrink-0">
+        {/* Compact Header Row */}
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <FaRobot className="text-purple-600" size={20} />
-            <h3 className="font-semibold text-gray-900">AI Writing Assistant</h3>
+            <FaRobot className="text-purple-600" size={18} />
+            <h3 className="font-medium text-gray-900">AI Assistant</h3>
             <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-              {contextMode.toUpperCase()}
+              {mode === 'outline' ? '📋 Research Mode' : '✍️ Writing Mode'}
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <button
               onClick={() => setShowSettings(!showSettings)}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
               title="Settings"
             >
-              <FaCog size={16} />
+              <FaCog size={14} />
             </button>
             <button
               onClick={handleClearConversation}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
               title="Clear conversation"
             >
-              <FaTimes size={16} />
+              <FaTimes size={14} />
             </button>
           </div>
         </div>
-        
-        {book && currentChapter && (
-          <p className="text-sm text-gray-600 mt-1">
-            Working on: {currentChapter.title}
-          </p>
-        )}
+
+        {/* Working On & Quick Prompts Combined */}
+        <div className="space-y-2">
+          {book && currentChapter && (
+            <p className="text-xs text-gray-600">
+              Working on: <span className="font-medium">{currentChapter.title}</span>
+            </p>
+          )}
+          
+          {/* Compact Quick Prompts */}
+          <div className="grid grid-cols-2 gap-1.5">
+            {promptTypes.map(({ type, icon: Icon, text, description, color }) => (
+              <button
+                key={type}
+                onClick={() => handlePromptType(type)}
+                disabled={isLoading}
+                className={`flex items-center gap-1.5 p-2 rounded border border-gray-200 ${color} transition-colors text-left disabled:opacity-50`}
+                title={description}
+              >
+                <Icon size={12} />
+                <span className="font-medium text-xs">{text}</span>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Settings Panel */}
       {showSettings && (
-        <div className="p-4 border-b border-gray-200 bg-gray-50">
-          <h4 className="font-medium text-gray-900 mb-3">Context Mode</h4>
-          <div className="grid grid-cols-1 gap-2">
+        <div className="p-3 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+          <h4 className="font-medium text-gray-900 mb-2 text-sm">Context Mode</h4>
+          <div className="grid grid-cols-1 gap-1.5">
             {contextModes.map(({ mode, icon: Icon, text, description }) => (
               <button
                 key={mode}
                 onClick={() => handleContextModeChange(mode)}
-                className={`flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
+                className={`flex items-center gap-2 p-2 rounded border transition-colors text-left text-sm ${
                   contextMode === mode 
                     ? 'border-purple-300 bg-purple-50 text-purple-700' 
                     : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                 }`}
               >
-                <Icon className={contextMode === mode ? 'text-purple-600' : 'text-gray-400'} />
+                <Icon className={contextMode === mode ? 'text-purple-600' : 'text-gray-400'} size={14} />
                 <div>
-                  <div className="font-medium">{text}</div>
-                  <div className="text-sm text-gray-600">{description}</div>
+                  <div className="font-medium text-xs">{text}</div>
+                  <div className="text-xs text-gray-600">{description}</div>
                 </div>
               </button>
             ))}
           </div>
         </div>
       )}
-
-      {/* Quick Prompts */}
-      <div className="p-4 border-b border-gray-200 bg-gray-50">
-        <h4 className="font-medium text-gray-900 mb-3">
-          {mode === 'outline' ? 'Quick Research Prompts' : 'Quick Writing Prompts'}
-        </h4>
-        <div className="grid grid-cols-2 gap-2">
-          {promptTypes.map(({ type, icon: Icon, text, description, color }) => (
-            <button
-              key={type}
-              onClick={() => handlePromptType(type)}
-              disabled={isLoading}
-              className={`flex items-center gap-2 p-3 rounded-lg border border-gray-200 ${color} transition-colors text-left disabled:opacity-50`}
-              title={description}
-            >
-              <Icon size={16} />
-              <span className="font-medium text-sm">{text}</span>
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Messages - Scrollable Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
