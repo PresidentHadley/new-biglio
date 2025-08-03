@@ -119,7 +119,7 @@ export function useBooks() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     fetchBooks();
@@ -153,7 +153,7 @@ export function useChapters(bookId: string) {
 
       if (error) throw error;
       
-      setChapters(data || []);
+      setChapters((data as unknown as Chapter[]) || []);
     } catch (err) {
       console.error('Error fetching chapters:', err);
       setError('Failed to load chapters');
