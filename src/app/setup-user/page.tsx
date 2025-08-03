@@ -39,12 +39,12 @@ export default function SetupUserPage() {
     setError('');
 
     try {
-      // Check if username is available
+      // Check if handle is available
       const { data: existingChannel } = await supabase
         .from('channels')
-        .select('username')
-        .eq('username', username)
-        .single();
+        .select('handle')
+        .eq('handle', username)
+        .maybeSingle();
 
       if (existingChannel) {
         setError('Username already taken. Please choose another.');
@@ -57,10 +57,11 @@ export default function SetupUserPage() {
         .from('channels')
         .insert({
           user_id: user.id,
-          name: channelName,
-          username: username,
-          description: description || `Welcome to ${channelName}! 📚`,
+          handle: username,
+          display_name: channelName,
+          bio: description || `Welcome to ${channelName}! 📚`,
           avatar_url: null,
+          cover_url: null,
           follower_count: 0,
           following_count: 0
         })
