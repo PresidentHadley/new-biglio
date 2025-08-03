@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { createClient } from '@/lib/supabase';
 import { 
   FaHome, 
   FaUser, 
@@ -49,6 +50,27 @@ export function ModernSideNav({
   const isAuthenticated = !!user;
   const pathname = usePathname();
   const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [userChannelHandle, setUserChannelHandle] = useState<string | null>(null);
+
+  // Fetch user's actual channel handle
+  useEffect(() => {
+    const fetchUserChannel = async () => {
+      if (!user) return;
+      
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('channels')
+        .select('handle')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (data) {
+        setUserChannelHandle(data.handle);
+      }
+    };
+
+    fetchUserChannel();
+  }, [user]);
 
   // Close on escape key
   useEffect(() => {
@@ -118,7 +140,7 @@ export function ModernSideNav({
     {
       id: 'channel',
       label: 'My Channel',
-      href: user?.email ? `/channel/${user.email.split('@')[0]}` : '/dashboard',
+      href: userChannelHandle ? `/channel/${userChannelHandle}` : '/dashboard',
       icon: FaUser,
       requireAuth: true
     },

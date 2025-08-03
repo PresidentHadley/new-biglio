@@ -60,9 +60,30 @@ export default function OutlineEditor() {
   const loadOutline = async () => {
     try {
       setIsLoading(true);
-      // For now, we'll store outline items as a simple mock
-      // In a real implementation, you'd have an outline table
-      setOutline([]);
+      
+      // Load existing chapters as outline items
+      const { data: chapters, error } = await supabase
+        .from('chapters')
+        .select('id, title, content, chapter_number')
+        .eq('biglio_id', bookId)
+        .order('chapter_number', { ascending: true });
+
+      if (error) throw error;
+
+      if (chapters && chapters.length > 0) {
+        const chapterOutline: OutlineItem[] = chapters.map((chapter) => ({
+          id: chapter.id,
+          title: chapter.title,
+          description: chapter.content ? 
+            `${chapter.content.substring(0, 150)}${chapter.content.length > 150 ? '...' : ''}` :
+            'No content yet',
+          order_index: chapter.chapter_number
+        }));
+        
+        setOutline(chapterOutline);
+      } else {
+        setOutline([]);
+      }
     } catch (error) {
       console.error('Error loading outline:', error);
     } finally {
@@ -254,7 +275,7 @@ export default function OutlineEditor() {
         <div className="mt-8 bg-white rounded-lg p-6 shadow-sm border border-gray-200">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-2xl font-bold text-gray-900">📚 Current Outline</h3>
-            {outline.length > 0 && (
+            {outline.length > 0 && !outline.some(item => item.id.includes('chapter-')) && (
               <button
                 onClick={createChaptersFromOutline}
                 className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold transition-colors"
@@ -277,19 +298,36 @@ export default function OutlineEditor() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <span className="bg-purple-600 text-white text-sm font-bold px-2 py-1 rounded">
-                          {index + 1}
+                          Ch {index + 1}
                         </span>
                         <h4 className="text-lg font-semibold text-gray-900">{item.title}</h4>
+                        {item.id.includes('chapter-') && (
+                          <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                            ✅ Created
+                          </span>
+                        )}
                       </div>
                       <p className="text-gray-700 text-sm leading-relaxed">{item.description}</p>
                     </div>
-                    <button
-                      onClick={() => removeItem(item.id)}
-                      className="ml-4 text-red-500 hover:text-red-700 p-1"
-                      title="Remove item"
-                    >
-                      ✕
-                    </button>
+                    <div className="flex items-center gap-2 ml-4">
+                      {item.id.includes('chapter-') ? (
+                        <Link
+                          href={`/book/${bookId}?chapter=${item.id}`}
+                          className="text-blue-600 hover:text-blue-800 p-1"
+                          title="Edit chapter"
+                        >
+                          ✏️
+                        </Link>
+                      ) : (
+                        <button
+                          onClick={() => removeItem(item.id)}
+                          className="text-red-500 hover:text-red-700 p-1"
+                          title="Remove item"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
