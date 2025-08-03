@@ -30,6 +30,23 @@ export default function Dashboard() {
   const [newBiglioDescription, setNewBiglioDescription] = useState('');
   const [showAuthModal, setShowAuthModal] = useState(false);
 
+  const fetchBooksForChannel = useCallback(async (channelId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('biglios')
+        .select('*')
+        .eq('channel_id', channelId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setBiglios(data || []);
+    } catch (err) {
+      console.error('Error fetching biglios:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [supabase]);
+
   const checkUserChannel = useCallback(async () => {
     if (!user) return;
 
@@ -70,24 +87,6 @@ export default function Dashboard() {
       checkUserChannel();
     }
   }, [user, authLoading, checkUserChannel]);
-
-  const fetchBooksForChannel = useCallback(async (channelId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('biglios')
-        .select('*')
-        .eq('channel_id', channelId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setBiglios(data || []);
-    } catch (err) {
-      console.error('Error fetching biglios:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [supabase]);
-
 
 
   const createBiglio = async () => {
