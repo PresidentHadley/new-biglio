@@ -49,7 +49,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-black pt-16">
       {/* Content now uses the fixed modern navbar from layout */}
 
       {/* Instagram-style Feed */}

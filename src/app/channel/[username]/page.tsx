@@ -130,7 +130,7 @@ export default function ChannelPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center pt-16">
         <LoadingSpinner />
       </div>
     );
@@ -138,7 +138,7 @@ export default function ChannelPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center pt-16">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Channel Not Found</h1>
           <p className="text-gray-600">{error}</p>
@@ -149,7 +149,7 @@ export default function ChannelPage() {
 
   if (!channel) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center pt-16">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Channel Not Found</h1>
           <p className="text-gray-600">This channel does not exist or has been removed.</p>
@@ -159,7 +159,7 @@ export default function ChannelPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-16">
       {/* Channel Header */}
       <ChannelHeader 
         channel={channel}

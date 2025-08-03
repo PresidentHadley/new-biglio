@@ -298,7 +298,7 @@ export default function UnifiedBookEditor() {
   }
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden pt-16">
       {/* Header with Mode Toggle */}
       <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0 shadow-sm">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
