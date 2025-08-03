@@ -48,6 +48,11 @@ export default function ChannelPage() {
       try {
         setLoading(true);
         
+        // Check if username exists
+        if (!username || typeof username !== 'string') {
+          throw new Error('Invalid username');
+        }
+        
         // Fetch channel by username
         const { data: channelData, error: channelError } = await supabase
           .from('channels')
