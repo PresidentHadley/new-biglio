@@ -22,6 +22,18 @@ function debounceChapterSave(
   };
 }
 
+// Typed debounce function for outline saving
+function debounceOutlineSave(
+  func: (chapterId: string, title: string, outlineContent: string) => void, 
+  wait: number
+) {
+  let timeout: NodeJS.Timeout;
+  return (chapterId: string, title: string, outlineContent: string) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(chapterId, title, outlineContent), wait);
+  };
+}
+
 type EditorMode = 'outline' | 'write';
 
 interface Book {
@@ -37,6 +49,8 @@ interface Chapter {
   id: string;
   title: string;
   content: string;
+  outline_content?: string;
+  summary?: string;
   chapter_number: number;
   is_published: boolean;
   duration_seconds?: number;
@@ -64,6 +78,7 @@ export default function UnifiedBookEditor() {
   // Editor state
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
+  const [editOutlineContent, setEditOutlineContent] = useState('');
   const [savingChapter, setSavingChapter] = useState(false);
 
   // Chapter creation
@@ -96,7 +111,7 @@ export default function UnifiedBookEditor() {
       setIsLoading(true);
       const { data, error } = await supabase
         .from('chapters')
-        .select('id, title, content, chapter_number, is_published, duration_seconds, audio_url')
+        .select('id, title, content, outline_content, summary, chapter_number, is_published, duration_seconds, audio_url')
         .eq('biglio_id', bookId)
         .order('chapter_number', { ascending: true });
 
@@ -110,7 +125,8 @@ export default function UnifiedBookEditor() {
         const firstChapter = chaptersData[0];
         setSelectedChapter(firstChapter);
         setEditTitle(firstChapter.title);
-        setEditContent(firstChapter.content);
+        setEditContent(firstChapter.content || '');
+        setEditOutlineContent(firstChapter.outline_content || '');
       }
     } catch (error) {
       console.error('Error fetching chapters:', error);
@@ -118,6 +134,100 @@ export default function UnifiedBookEditor() {
       setIsLoading(false);
     }
   }, [supabase, bookId, selectedChapter]);
+
+  // Select a chapter and load its content into edit state
+  const selectChapter = useCallback((chapter: Chapter) => {
+    setSelectedChapter(chapter);
+    setEditTitle(chapter.title);
+    setEditContent(chapter.content || '');
+    setEditOutlineContent(chapter.outline_content || '');
+  }, []);
+
+  // Generate chapter summary for AI context
+  const generateChapterSummary = useCallback(async (title: string, content: string): Promise<string | null> => {
+    if (!content.trim() || content.length < 100) return null;
+    
+    try {
+      const response = await fetch('/api/ai/generate-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content })
+      });
+
+      if (!response.ok) throw new Error('Failed to generate summary');
+      
+      const data = await response.json();
+      return data.summary;
+    } catch (error) {
+      console.error('Error generating chapter summary:', error);
+      return null;
+    }
+  }, []);
+
+  // Save chapter content (for writing mode)
+  const saveChapterContent = useCallback(async (chapterId: string, title: string, content: string) => {
+    try {
+      setSavingChapter(true);
+      
+      // Generate summary for AI context if content is substantial
+      const summary = await generateChapterSummary(title, content);
+      
+      const { error } = await supabase
+        .from('chapters')
+        .update({ 
+          title,
+          content,
+          summary: summary || undefined,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', chapterId);
+
+      if (error) throw error;
+      
+      // Update local state with new summary
+      if (summary) {
+        setChapters(prev => prev.map(ch => 
+          ch.id === chapterId ? { ...ch, summary } : ch
+        ));
+      }
+    } catch (error) {
+      console.error('Error saving chapter content:', error);
+    } finally {
+      setSavingChapter(false);
+    }
+  }, [supabase, generateChapterSummary]);
+
+  // Save chapter outline (for outline mode)
+  const saveChapterOutline = useCallback(async (chapterId: string, title: string, outlineContent: string) => {
+    try {
+      setSavingChapter(true);
+      const { error } = await supabase
+        .from('chapters')
+        .update({ 
+          title,
+          outline_content: outlineContent,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', chapterId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error saving chapter outline:', error);
+    } finally {
+      setSavingChapter(false);
+    }
+  }, [supabase]);
+
+  // Create debounced save functions
+  const debouncedSave = useCallback(
+    debounceChapterSave(saveChapterContent, 1000),
+    [saveChapterContent]
+  );
+
+  const debouncedSaveOutline = useCallback(
+    debounceOutlineSave(saveChapterOutline, 1000),
+    [saveChapterOutline]
+  );
 
   // Check authentication and load data
   useEffect(() => {
@@ -147,6 +257,8 @@ export default function UnifiedBookEditor() {
           biglio_id: bookId,
           title: newChapterTitle,
           content: '',
+          outline_content: '',
+          summary: null,
           chapter_number: nextChapterNumber,
           is_published: false,
           duration_seconds: 0
@@ -171,53 +283,26 @@ export default function UnifiedBookEditor() {
 
 
 
-  const selectChapter = (chapter: Chapter) => {
-    setSelectedChapter(chapter);
-    setEditTitle(chapter.title);
-    setEditContent(chapter.content);
-  };
 
-  // Auto-save with debouncing
-  const saveChapterData = useCallback(async (chapterId: string, title: string, content: string) => {
-    try {
-      setSavingChapter(true);
-      const { error } = await supabase
-        .from('chapters')
-        .update({
-          title: title,
-          content: content,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', chapterId);
 
-      if (error) throw error;
 
-      // Update local state
-      setChapters(prev => prev.map(ch => 
-        ch.id === chapterId 
-          ? { ...ch, title: title, content: content }
-          : ch
-      ));
-      
-      console.log('Chapter auto-saved');
-    } catch (error) {
-      console.error('Error auto-saving chapter:', error);
-    } finally {
-      setSavingChapter(false);
-    }
-  }, [supabase]);
 
-  const debouncedSave = useCallback(
-    debounceChapterSave(saveChapterData, 1000),
-    [saveChapterData]
-  );
-
-  // Auto-save when content changes
+  // Auto-save when content changes (mode-aware)
   useEffect(() => {
-    if (selectedChapter && (editTitle !== selectedChapter.title || editContent !== selectedChapter.content)) {
-      debouncedSave(selectedChapter.id, editTitle, editContent);
+    if (!selectedChapter) return;
+
+    if (mode === 'write') {
+      // In write mode, save title and content changes
+      if (editTitle !== selectedChapter.title || editContent !== (selectedChapter.content || '')) {
+        debouncedSave(selectedChapter.id, editTitle, editContent);
+      }
+    } else if (mode === 'outline') {
+      // In outline mode, save title and outline content changes
+      if (editTitle !== selectedChapter.title || editOutlineContent !== (selectedChapter.outline_content || '')) {
+        debouncedSaveOutline(selectedChapter.id, editTitle, editOutlineContent);
+      }
     }
-  }, [editTitle, editContent, selectedChapter, debouncedSave]);
+  }, [editTitle, editContent, editOutlineContent, selectedChapter, mode, debouncedSave, debouncedSaveOutline]);
 
   const generateAIOutline = async () => {
     if (!book) return;
@@ -470,26 +555,29 @@ export default function UnifiedBookEditor() {
                             <span className="text-sm text-gray-500 ml-2">Ch. {chapter.chapter_number}</span>
                           </div>
                           <textarea
-                            value={selectedChapter?.id === chapter.id ? editContent : chapter.content}
+                            value={selectedChapter?.id === chapter.id ? editOutlineContent : (chapter.outline_content || '')}
                             onChange={(e) => {
                               if (selectedChapter?.id === chapter.id) {
-                                setEditContent(e.target.value);
+                                setEditOutlineContent(e.target.value);
                               } else {
-                                // Update chapter content directly for non-selected chapters
+                                // Update chapter outline content directly for non-selected chapters
                                 setChapters(prev => prev.map(ch => 
-                                  ch.id === chapter.id ? { ...ch, content: e.target.value } : ch
+                                  ch.id === chapter.id ? { ...ch, outline_content: e.target.value } : ch
                                 ));
-                                debouncedSave(chapter.id, chapter.title, e.target.value);
+                                debouncedSaveOutline(chapter.id, chapter.title, e.target.value);
                               }
                             }}
                             onClick={() => selectChapter(chapter)}
                             className="w-full h-24 p-3 text-gray-700 bg-gray-50 border border-gray-200 rounded focus:border-blue-300 focus:bg-white focus:outline-none resize-none text-sm leading-relaxed"
-                            placeholder="Chapter summary or notes..."
+                            placeholder="Chapter outline, summary, or key points to cover..."
                           />
                           <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-                            <span>{chapter.content.length} characters</span>
+                            <span>{(chapter.outline_content || '').length} outline chars | {(chapter.content || '').length} content chars</span>
                             <div className="flex gap-2">
-                              {chapter.content.trim() && (
+                              {(chapter.outline_content || '').trim() && (
+                                <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">📋 Has outline</span>
+                              )}
+                              {(chapter.content || '').trim() && (
                                 <span className="bg-green-100 text-green-700 px-2 py-1 rounded">✍️ Has content</span>
                               )}
                               {chapter.audio_url && (
@@ -638,6 +726,7 @@ export default function UnifiedBookEditor() {
             <AIAssistantChat
               book={book}
               currentChapter={selectedChapter ?? undefined}
+              chapters={chapters}
               mode={mode}
               onContentSuggestion={(content) => {
                 if (selectedChapter && mode === 'write') {

@@ -8,9 +8,11 @@ interface BookContext {
   currentChapterTitle?: string;
   currentChapterNumber?: number;
   currentChapterContent?: string;
+  currentChapterOutline?: string;
   wordCount?: number;
   fullBookContent?: string;
   previousChapters?: string;
+  chapterSummaries?: string[];
   totalChapters?: number;
 }
 
@@ -177,16 +179,33 @@ export function AIProvider({ children }: { children: ReactNode }) {
       contextualMessage += `\n\n`;
     }
     
+    // Add previous chapters context for better story continuity
+    if (context.chapterSummaries && context.chapterSummaries.length > 0) {
+      contextualMessage += `Story so far:\n`;
+      context.chapterSummaries.forEach((summary, index) => {
+        contextualMessage += `Chapter ${index + 1}: ${summary}\n`;
+      });
+      contextualMessage += `\n`;
+    }
+
     // Add current chapter context
     if (context.currentChapterTitle) {
       contextualMessage += `Currently working on: "${context.currentChapterTitle}"`;
       if (context.currentChapterNumber) {
         contextualMessage += ` (Chapter ${context.currentChapterNumber})`;
       }
+      
+      // Show outline content for context (what this chapter should cover)
+      if (context.currentChapterOutline) {
+        contextualMessage += `\n\nChapter outline/plan: "${context.currentChapterOutline}"`;
+      }
+      
+      // Show current written content if any
       if (context.currentChapterContent) {
         const preview = context.currentChapterContent.substring(0, 500);
         contextualMessage += `\n\nCurrent chapter content: "${preview}${context.currentChapterContent.length > 500 ? '...' : ''}"`;
       }
+      
       if (context.wordCount) {
         contextualMessage += `\n\nWord count: ${context.wordCount}`;
       }

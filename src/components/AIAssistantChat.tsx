@@ -37,12 +37,15 @@ interface Chapter {
   id: string;
   title: string;
   content: string;
+  outline_content?: string;
+  summary?: string;
   chapter_number?: number;
 }
 
 interface AIAssistantChatProps {
   book?: Book;
   currentChapter?: Chapter;
+  chapters?: Chapter[];
   mode?: 'outline' | 'write';
   onContentSuggestion?: (content: string) => void;
   onInsertContent?: (content: string) => void;
@@ -52,6 +55,7 @@ interface AIAssistantChatProps {
 export function AIAssistantChat({
   book,
   currentChapter,
+  chapters = [],
   mode = 'write',
   onContentSuggestion,
   onInsertContent,
@@ -226,12 +230,24 @@ Let's create something amazing!`;
   }, [getWelcomeMessage]);
 
   const buildContext = () => {
+    // Build chapter summaries for previous chapters (for AI context)
+    const currentChapterNum = currentChapter?.chapter_number || 0;
+    const previousChapters = chapters
+      .filter(ch => (ch.chapter_number || 0) < currentChapterNum)
+      .sort((a, b) => (a.chapter_number || 0) - (b.chapter_number || 0));
+    
+    const chapterSummaries = previousChapters
+      .map(ch => ch.summary)
+      .filter(Boolean) as string[];
+
     return {
       bookTitle: book?.title || '',
       bookDescription: book?.description || '',
       currentChapterTitle: currentChapter?.title || '',
       currentChapterNumber: currentChapter?.chapter_number || 0,
       currentChapterContent: currentChapter?.content || '',
+      currentChapterOutline: currentChapter?.outline_content || '',
+      chapterSummaries: chapterSummaries,
       wordCount: currentChapter?.content?.length || 0,
       totalChapters: book?.total_chapters || 0
     };
