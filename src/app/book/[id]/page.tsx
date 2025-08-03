@@ -30,7 +30,7 @@ interface Chapter {
 
 export default function BookEditor() {
   const params = useParams();
-  const router = useRouter();
+
   const { user, loading: authLoading } = useAuth();
   const bookId = params.id as string;
   const [book, setBook] = useState<Book | null>(null);
@@ -189,14 +189,7 @@ export default function BookEditor() {
     
     setIsWritingChapter(true);
     try {
-      // Call AI to start writing this chapter
-      const prompt = `Start writing this chapter for me. Write approximately 3500 characters of engaging content that will sound great as an audiobook. 
-
-Chapter: "${selectedChapter.title}"
-Current content: "${editContent}"
-
-Please write in a conversational, engaging style suitable for audio. ${editContent ? 'Continue from where the content left off.' : 'Start from the beginning.'}`;
-      
+      // Call AI to start writing this chapter - would use prompt in future implementation
       // This would use the AI context - for now, we'll add placeholder
       const aiContent = "This is where the AI would generate chapter content...";
       insertAIContent(aiContent);
@@ -212,14 +205,7 @@ Please write in a conversational, engaging style suitable for audio. ${editConte
     
     setIsWritingChapter(true);
     try {
-      // Call AI to finish this chapter
-      const prompt = `Please finish this chapter for me. Write approximately 3500 characters to bring this chapter to a satisfying conclusion.
-
-Chapter: "${selectedChapter.title}"
-Current content: "${editContent}"
-
-Please write a compelling ending that flows naturally from the existing content and will sound great as an audiobook.`;
-      
+      // Call AI to finish this chapter - would use prompt in future implementation
       // This would use the AI context - for now, we'll add placeholder  
       const aiContent = "This is where the AI would generate chapter conclusion...";
       insertAIContent(aiContent);

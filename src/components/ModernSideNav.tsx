@@ -118,7 +118,7 @@ export function ModernSideNav({
     {
       id: 'channel',
       label: 'My Channel',
-      href: user?.username ? `/channel/${user.username}` : '/channel',
+      href: user?.email ? `/channel/${user.email.split('@')[0]}` : '/channel',
       icon: FaUser,
       requireAuth: true
     },

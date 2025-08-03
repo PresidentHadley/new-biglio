@@ -57,7 +57,7 @@ export default function Dashboard() {
       console.error('Error checking user channel:', err);
       setIsLoading(false);
     }
-  }, [user, supabase, router]);
+  }, [user, supabase, router, fetchBooksForChannel]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -71,7 +71,7 @@ export default function Dashboard() {
     }
   }, [user, authLoading, checkUserChannel]);
 
-  const fetchBooksForChannel = async (channelId: string) => {
+  const fetchBooksForChannel = useCallback(async (channelId: string) => {
     try {
       const { data, error } = await supabase
         .from('biglios')
@@ -86,23 +86,9 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [supabase]);
 
-  const fetchBooks = async () => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('biglios')
-        .select('*')
-        .order('updated_at', { ascending: false });
-      if (error) throw error;
-      setBiglios(data || []);
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+
 
   const createBiglio = async () => {
     if (!newBiglioTitle.trim()) return;
