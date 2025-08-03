@@ -153,36 +153,39 @@ export function AudioGenerationButton({
 
   return (
     <div className={`space-y-3 ${className}`}>
-      {/* Voice Selection */}
-      {!audioUrl && (
-        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-          <span className="text-sm font-medium text-gray-700">Voice:</span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setSelectedVoice('female')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
-                selectedVoice === 'female' 
-                  ? 'bg-pink-100 text-pink-800 border border-pink-300' 
-                  : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              <FaFemale size={14} />
-              Female
-            </button>
-            <button
-              onClick={() => setSelectedVoice('male')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
-                selectedVoice === 'male' 
-                  ? 'bg-blue-100 text-blue-800 border border-blue-300' 
-                  : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              <FaMale size={14} />
-              Male
-            </button>
-          </div>
+      {/* Voice Selection - Always Visible */}
+      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <span className="text-sm font-medium text-gray-700">Voice:</span>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setSelectedVoice('female')}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
+              selectedVoice === 'female' 
+                ? 'bg-pink-100 text-pink-800 border border-pink-300' 
+                : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            <FaFemale size={14} />
+            Female
+          </button>
+          <button
+            onClick={() => setSelectedVoice('male')}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
+              selectedVoice === 'male' 
+                ? 'bg-blue-100 text-blue-800 border border-blue-300' 
+                : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            <FaMale size={14} />
+            Male
+          </button>
         </div>
-      )}
+        {audioUrl && (
+          <span className="text-xs text-gray-500 ml-2">
+            (for regeneration)
+          </span>
+        )}
+      </div>
 
       {/* Main Action Button */}
       <div className="flex gap-2">
