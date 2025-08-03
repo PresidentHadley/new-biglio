@@ -73,10 +73,10 @@ export function AIProvider({ children }: { children: ReactNode }) {
     return Math.ceil(text.length / 4);
   };
 
-  const isContextTooLarge = (context: string): boolean => {
+  const isContextTooLarge = useCallback((context: string): boolean => {
     const APPROX_TOKEN_LIMIT = 12000;
     return estimateTokenCount(context) > APPROX_TOKEN_LIMIT;
-  };
+  }, []);
 
   // Advanced context optimization (upgraded from old system)
   const optimizeContext = useCallback((fullContext: string, userMessage: string): string => {
@@ -132,7 +132,7 @@ export function AIProvider({ children }: { children: ReactNode }) {
     console.log(`Reduced context from ~${estimateTokenCount(fullContext)} to ~${estimateTokenCount(optimizedContext)} tokens`);
     
     return optimizedContext;
-  }, []);
+  }, [isContextTooLarge]);
 
   // Generate sophisticated prompts (upgraded from old system)
   const generatePrompt = useCallback((type: AIPromptType, context?: BookContext): string => {
@@ -158,7 +158,7 @@ export function AIProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const buildContextualMessage = (message: string, context?: BookContext): string => {
+  const buildContextualMessage = useCallback((message: string, context?: BookContext): string => {
     if (!context) return message;
 
     let contextualMessage = '';
@@ -196,7 +196,7 @@ export function AIProvider({ children }: { children: ReactNode }) {
     contextualMessage += `User question: ${message}`;
     
     return contextualMessage;
-  };
+  }, [contextMode, optimizeContext]);
 
   const sendMessage = useCallback(async (
     message: string, 
@@ -264,7 +264,7 @@ export function AIProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [contextMode, messageHistory, optimizeContext]);
+  }, [contextMode, messageHistory, optimizeContext, buildContextualMessage]);
 
   const generateOutline = async (title: string, description: string, options?: OutlineOptions): Promise<OutlineResult[]> => {
     setIsLoading(true);

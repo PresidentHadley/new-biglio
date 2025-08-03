@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase';
 import { 
   FaPlay, 
@@ -62,32 +62,7 @@ export function AudioPlayerModal({ book, isOpen, onClose }: AudioPlayerModalProp
   const audioRef = useRef<HTMLAudioElement>(null);
   const supabase = createClient();
 
-  useEffect(() => {
-    if (book && isOpen) {
-      fetchChapters();
-    }
-  }, [book, isOpen]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const updateTime = () => setCurrentTime(audio.currentTime);
-    const updateDuration = () => setDuration(audio.duration);
-    const handleEnded = () => playNextChapter();
-
-    audio.addEventListener('timeupdate', updateTime);
-    audio.addEventListener('loadedmetadata', updateDuration);
-    audio.addEventListener('ended', handleEnded);
-
-    return () => {
-      audio.removeEventListener('timeupdate', updateTime);
-      audio.removeEventListener('loadedmetadata', updateDuration);
-      audio.removeEventListener('ended', handleEnded);
-    };
-  }, [currentChapter]);
-
-  const fetchChapters = async () => {
+  const fetchChapters = useCallback(async () => {
     if (!book) return;
 
     try {
@@ -114,21 +89,9 @@ export function AudioPlayerModal({ book, isOpen, onClose }: AudioPlayerModalProp
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [book, supabase]);
 
-  const togglePlayPause = () => {
-    const audio = audioRef.current;
-    if (!audio || !currentChapter?.audio_url) return;
-
-    if (isPlaying) {
-      audio.pause();
-    } else {
-      audio.play();
-    }
-    setIsPlaying(!isPlaying);
-  };
-
-  const playChapter = (chapter: Chapter) => {
+  const playChapter = useCallback((chapter: Chapter) => {
     if (!chapter.audio_url) return;
     
     setCurrentChapter(chapter);
@@ -142,14 +105,51 @@ export function AudioPlayerModal({ book, isOpen, onClose }: AudioPlayerModalProp
         audio.play().then(() => setIsPlaying(true));
       }
     }, 100);
-  };
+  }, []);
 
-  const playNextChapter = () => {
+  const playNextChapter = useCallback(() => {
     const currentIndex = chapters.findIndex(ch => ch.id === currentChapter?.id);
     const nextChapter = chapters[currentIndex + 1];
     if (nextChapter) {
       playChapter(nextChapter);
     }
+  }, [chapters, currentChapter, playChapter]);
+
+  useEffect(() => {
+    if (book && isOpen) {
+      fetchChapters();
+    }
+  }, [book, isOpen, fetchChapters]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const updateTime = () => setCurrentTime(audio.currentTime);
+    const updateDuration = () => setDuration(audio.duration);
+    const handleEnded = () => playNextChapter();
+
+    audio.addEventListener('timeupdate', updateTime);
+    audio.addEventListener('loadedmetadata', updateDuration);
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.removeEventListener('timeupdate', updateTime);
+      audio.removeEventListener('loadedmetadata', updateDuration);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, [currentChapter, playNextChapter]);
+
+  const togglePlayPause = () => {
+    const audio = audioRef.current;
+    if (!audio || !currentChapter?.audio_url) return;
+
+    if (isPlaying) {
+      audio.pause();
+    } else {
+      audio.play();
+    }
+    setIsPlaying(!isPlaying);
   };
 
   const playPreviousChapter = () => {

@@ -84,7 +84,7 @@ export function useAudioJobs(chapterId?: string) {
       const cleanup = subscribeToJobs();
       return cleanup;
     }
-  }, [chapterId]);
+  }, [chapterId, supabase]);
 
   const fetchJobs = async () => {
     if (!chapterId) return;

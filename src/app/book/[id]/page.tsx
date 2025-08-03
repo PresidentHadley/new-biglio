@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -9,6 +9,18 @@ import { AuthModal } from '@/components/AuthModal';
 import { AudioGenerationButton } from '@/components/AudioGenerationButton';
 import { AIAssistantChat } from '@/components/AIAssistantChat';
 import Link from 'next/link';
+
+// Typed debounce function for chapter saving
+function debounceChapterSave(
+  func: (chapterId: string, title: string, content: string) => void, 
+  wait: number
+) {
+  let timeout: NodeJS.Timeout;
+  return (chapterId: string, title: string, content: string) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(chapterId, title, content), wait);
+  };
+}
 
 type EditorMode = 'outline' | 'write';
 
@@ -51,7 +63,6 @@ export default function UnifiedBookEditor() {
   // Editor state
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
   const [savingChapter, setSavingChapter] = useState(false);
 
   // Chapter creation
@@ -64,23 +75,7 @@ export default function UnifiedBookEditor() {
 
   const supabase = createClient();
 
-  // Check authentication and load data
-  useEffect(() => {
-    if (authLoading) return;
-    
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
-    
-    setShowAuthModal(false);
-    if (bookId) {
-      fetchBookData();
-      fetchChapters();
-    }
-  }, [bookId, user, authLoading]);
-
-  const fetchBookData = async () => {
+  const fetchBookData = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('biglios')
@@ -93,9 +88,9 @@ export default function UnifiedBookEditor() {
     } catch (error) {
       console.error('Error fetching book:', error);
     }
-  };
+  }, [supabase, bookId]);
 
-  const fetchChapters = async () => {
+  const fetchChapters = useCallback(async () => {
     try {
       setIsLoading(true);
       const { data, error } = await supabase
@@ -121,7 +116,23 @@ export default function UnifiedBookEditor() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [supabase, bookId, selectedChapter]);
+
+  // Check authentication and load data
+  useEffect(() => {
+    if (authLoading) return;
+    
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    
+    setShowAuthModal(false);
+    if (bookId) {
+      fetchBookData();
+      fetchChapters();
+    }
+  }, [bookId, user, authLoading, fetchBookData, fetchChapters]);
 
   const createChapter = async () => {
     if (!newChapterTitle.trim() || !book) return;
@@ -157,52 +168,55 @@ export default function UnifiedBookEditor() {
     }
   };
 
-  const saveChapter = async () => {
-    if (!selectedChapter) return;
 
+
+  const selectChapter = (chapter: Chapter) => {
+    setSelectedChapter(chapter);
+    setEditTitle(chapter.title);
+    setEditContent(chapter.content);
+  };
+
+  // Auto-save with debouncing
+  const saveChapterData = useCallback(async (chapterId: string, title: string, content: string) => {
     try {
       setSavingChapter(true);
       const { error } = await supabase
         .from('chapters')
         .update({
-          title: editTitle,
-          content: editContent,
+          title: title,
+          content: content,
           updated_at: new Date().toISOString()
         })
-        .eq('id', selectedChapter.id);
+        .eq('id', chapterId);
 
       if (error) throw error;
 
-      // Update local state immediately
+      // Update local state
       setChapters(prev => prev.map(ch => 
-        ch.id === selectedChapter.id 
-          ? { ...ch, title: editTitle, content: editContent }
+        ch.id === chapterId 
+          ? { ...ch, title: title, content: content }
           : ch
       ));
       
-      setSelectedChapter(prev => prev ? { ...prev, title: editTitle, content: editContent } : null);
-      setIsEditing(false);
-      
-      console.log('Chapter saved successfully!');
+      console.log('Chapter auto-saved');
     } catch (error) {
-      console.error('Error saving chapter:', error);
-      alert('Failed to save chapter. Please try again.');
+      console.error('Error auto-saving chapter:', error);
     } finally {
       setSavingChapter(false);
     }
-  };
+  }, [supabase]);
 
-  const selectChapter = (chapter: Chapter) => {
-    if (isEditing) {
-      const confirmSwitch = window.confirm('You have unsaved changes. Switch chapters anyway?');
-      if (!confirmSwitch) return;
+  const debouncedSave = useCallback(
+    debounceChapterSave(saveChapterData, 1000),
+    [saveChapterData]
+  );
+
+  // Auto-save when content changes
+  useEffect(() => {
+    if (selectedChapter && (editTitle !== selectedChapter.title || editContent !== selectedChapter.content)) {
+      debouncedSave(selectedChapter.id, editTitle, editContent);
     }
-    
-    setSelectedChapter(chapter);
-    setEditTitle(chapter.title);
-    setEditContent(chapter.content);
-    setIsEditing(false);
-  };
+  }, [editTitle, editContent, selectedChapter, debouncedSave]);
 
   const generateAIOutline = async () => {
     if (!book) return;
@@ -417,42 +431,75 @@ export default function UnifiedBookEditor() {
             <div className="flex-1 overflow-y-auto p-6">
               <div className="max-w-4xl mx-auto space-y-6">
                 
-                {/* Book Summary */}
+                {/* Editable Outline */}
                 <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4">📖 Book Summary</h3>
-                  <div className="prose max-w-none">
-                    {selectedChapter ? (
-                      <div>
-                        <h4 className="text-lg font-semibold text-gray-900 mb-2">Chapter {selectedChapter.chapter_number}: {selectedChapter.title}</h4>
-                        {selectedChapter.content ? (
-                          <div className="text-gray-700 leading-relaxed whitespace-pre-wrap bg-gray-50 p-4 rounded border">
-                            {selectedChapter.content.substring(0, 500)}{selectedChapter.content.length > 500 ? '...' : ''}
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">📝 Chapter Outline</h3>
+                  
+                  {chapters.length === 0 ? (
+                    <p className="text-gray-500 italic">No chapters yet. Generate an outline below or create chapters manually.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {chapters.map((chapter) => (
+                        <div 
+                          key={chapter.id} 
+                          className={`p-4 border rounded-lg transition-all ${
+                            selectedChapter?.id === chapter.id 
+                              ? 'border-blue-300 bg-blue-50' 
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <input
+                              type="text"
+                              value={selectedChapter?.id === chapter.id ? editTitle : chapter.title}
+                              onChange={(e) => {
+                                if (selectedChapter?.id === chapter.id) {
+                                  setEditTitle(e.target.value);
+                                } else {
+                                  // Update chapter title directly for non-selected chapters
+                                  setChapters(prev => prev.map(ch => 
+                                    ch.id === chapter.id ? { ...ch, title: e.target.value } : ch
+                                  ));
+                                  debouncedSave(chapter.id, e.target.value, chapter.content);
+                                }
+                              }}
+                              className="font-semibold text-gray-900 bg-transparent border-none outline-none focus:bg-white focus:border focus:border-blue-300 focus:rounded px-2 py-1 -mx-2 -my-1 flex-1"
+                              placeholder="Chapter title"
+                            />
+                            <span className="text-sm text-gray-500 ml-2">Ch. {chapter.chapter_number}</span>
                           </div>
-                        ) : (
-                          <p className="text-gray-500 italic">No content yet. Switch to Write Mode to add content.</p>
-                        )}
-                      </div>
-                    ) : (
-                      <div>
-                        <p className="text-gray-700 mb-4">{book.description || 'No description yet.'}</p>
-                        <div className="bg-blue-50 p-4 rounded border border-blue-200">
-                          <h4 className="font-semibold text-blue-900 mb-2">📊 Book Stats</h4>
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <span className="text-blue-700">Total Chapters:</span>
-                              <span className="font-medium ml-2">{chapters.length}</span>
-                            </div>
-                            <div>
-                              <span className="text-blue-700">Total Words:</span>
-                              <span className="font-medium ml-2">
-                                {chapters.reduce((total, ch) => total + ch.content.trim().split(/\s+/).filter(word => word.length > 0).length, 0)}
-                              </span>
+                          <textarea
+                            value={selectedChapter?.id === chapter.id ? editContent : chapter.content}
+                            onChange={(e) => {
+                              if (selectedChapter?.id === chapter.id) {
+                                setEditContent(e.target.value);
+                              } else {
+                                // Update chapter content directly for non-selected chapters
+                                setChapters(prev => prev.map(ch => 
+                                  ch.id === chapter.id ? { ...ch, content: e.target.value } : ch
+                                ));
+                                debouncedSave(chapter.id, chapter.title, e.target.value);
+                              }
+                            }}
+                            onClick={() => selectChapter(chapter)}
+                            className="w-full h-24 p-3 text-gray-700 bg-gray-50 border border-gray-200 rounded focus:border-blue-300 focus:bg-white focus:outline-none resize-none text-sm leading-relaxed"
+                            placeholder="Chapter summary or notes..."
+                          />
+                          <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+                            <span>{chapter.content.length} characters</span>
+                            <div className="flex gap-2">
+                              {chapter.content.trim() && (
+                                <span className="bg-green-100 text-green-700 px-2 py-1 rounded">✍️ Has content</span>
+                              )}
+                              {chapter.audio_url && (
+                                <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded">🎵 Has audio</span>
+                              )}
                             </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* AI Outline Generation */}
@@ -479,22 +526,31 @@ export default function UnifiedBookEditor() {
               </div>
             </div>
           ) : (
-            /* WRITE MODE */
+            /* WRITE MODE - Always Editable */
             selectedChapter ? (
               <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Chapter Header */}
                 <div className="p-6 border-b border-gray-200 bg-white flex-shrink-0">
                   <div className="flex justify-between items-center">
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900">{selectedChapter.title}</h2>
-                      <p className="text-gray-600">Chapter {selectedChapter.chapter_number}</p>
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="text-2xl font-bold text-gray-900 bg-transparent border-none outline-none focus:bg-white focus:border focus:border-blue-300 focus:rounded px-2 py-1 -mx-2 -my-1 w-full"
+                        placeholder="Chapter title"
+                      />
+                      <p className="text-gray-600">Chapter {selectedChapter.chapter_number} 
+                        {savingChapter && <span className="text-blue-600 ml-2">💾 Saving...</span>}
+                      </p>
                     </div>
                     <div className="flex gap-3">
                       <AudioGenerationButton
                         chapterId={selectedChapter.id}
-                        chapterTitle={isEditing ? editTitle : selectedChapter.title}
-                        chapterContent={isEditing ? editContent : selectedChapter.content}
+                        chapterTitle={editTitle}
+                        chapterContent={editContent}
                         existingAudioUrl={selectedChapter.audio_url}
+                        disabled={isOverLimit()}
                         onAudioGenerated={(audioUrl) => {
                           setSelectedChapter(prev => prev ? { ...prev, audio_url: audioUrl } : null);
                           fetchChapters();
@@ -504,91 +560,45 @@ export default function UnifiedBookEditor() {
                   </div>
                 </div>
 
-                {/* Editor Content */}
+                {/* Direct Editor - No Edit Button Needed */}
                 <div className="flex-1 p-6 overflow-y-auto">
-                  {isEditing ? (
-                    <div className="space-y-4">
-                      <input
-                        type="text"
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        className="w-full p-3 bg-white text-gray-900 text-xl font-bold rounded border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
-                        placeholder="Chapter title"
-                      />
-                      <div className="space-y-2">
-                        <textarea
-                          value={editContent}
-                          onChange={(e) => setEditContent(e.target.value)}
-                          className={`w-full h-96 p-4 bg-white text-gray-900 rounded border leading-relaxed focus:outline-none resize-none ${
-                            isOverLimit() 
-                              ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200' 
-                              : isNearLimit()
-                              ? 'border-yellow-500 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200'
-                              : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
-                          }`}
-                          placeholder="Start writing your chapter..."
-                        />
-                        
-                        {/* Character count and warnings */}
-                        <div className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-4">
-                            <span className={`${isOverLimit() ? 'text-red-600 font-bold' : isNearLimit() ? 'text-yellow-600 font-medium' : 'text-gray-600'}`}>
-                              {getCharacterCount().toLocaleString()} / 7,500 characters
-                            </span>
-                            <span className="text-gray-500">
-                              ~{getWordCount()} words
-                            </span>
-                          </div>
-                          
-                          {isOverLimit() && (
-                            <span className="text-red-600 text-xs font-medium">
-                              ⚠️ Over limit - Audio generation disabled
-                            </span>
-                          )}
-                          {isNearLimit() && !isOverLimit() && (
-                            <span className="text-yellow-600 text-xs font-medium">
-                              ⚠️ Approaching character limit
-                            </span>
-                          )}
-                        </div>
+                  <div className="space-y-4">
+                    <textarea
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      className={`w-full h-96 p-4 bg-white text-gray-900 rounded border leading-relaxed focus:outline-none resize-none text-base ${
+                        isOverLimit() 
+                          ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200' 
+                          : isNearLimit()
+                          ? 'border-yellow-500 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200'
+                          : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+                      }`}
+                      placeholder="Start writing your chapter..."
+                    />
+                    
+                    {/* Character count and warnings */}
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-4">
+                        <span className={`${isOverLimit() ? 'text-red-600 font-bold' : isNearLimit() ? 'text-yellow-600 font-medium' : 'text-gray-600'}`}>
+                          {getCharacterCount().toLocaleString()} / 7,500 characters
+                        </span>
+                        <span className="text-gray-500">
+                          ~{getWordCount()} words
+                        </span>
                       </div>
-                      <div className="flex flex-wrap gap-3">
-                        <button
-                          onClick={saveChapter}
-                          disabled={savingChapter}
-                          className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded font-semibold transition-colors"
-                        >
-                          {savingChapter ? '💾 Saving...' : '💾 Save Chapter'}
-                        </button>
-                        <button
-                          onClick={() => setIsEditing(false)}
-                          className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-semibold transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </div>
+                      
+                      {isOverLimit() && (
+                        <span className="text-red-600 text-xs font-medium">
+                          ⚠️ Over limit - Audio generation disabled
+                        </span>
+                      )}
+                      {isNearLimit() && !isOverLimit() && (
+                        <span className="text-yellow-600 text-xs font-medium">
+                          ⚠️ Approaching character limit
+                        </span>
+                      )}
                     </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="prose max-w-none">
-                        {selectedChapter.content ? (
-                          <div className="whitespace-pre-wrap text-gray-800 leading-relaxed bg-white p-6 rounded border border-gray-200 shadow-sm">
-                            {selectedChapter.content}
-                          </div>
-                        ) : (
-                          <p className="text-gray-500 italic bg-gray-50 p-6 rounded border border-gray-200">No content yet. Click &ldquo;Edit&rdquo; to start writing.</p>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-3">
-                        <button
-                          onClick={() => setIsEditing(true)}
-                          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold transition-colors"
-                        >
-                          ✏️ Edit Chapter
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  </div>
                 </div>
               </div>
             ) : (
@@ -621,12 +631,11 @@ export default function UnifiedBookEditor() {
           <div className="flex-1 overflow-hidden">
             <AIAssistantChat
               book={book}
-              currentChapter={selectedChapter || undefined}
+              currentChapter={selectedChapter ?? undefined}
               mode={mode}
               onContentSuggestion={(content) => {
                 if (selectedChapter && mode === 'write') {
                   setEditContent(prev => prev + '\n\n' + content);
-                  setIsEditing(true);
                 }
               }}
               className="h-full"

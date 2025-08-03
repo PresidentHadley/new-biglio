@@ -101,7 +101,7 @@ export default function Dashboard() {
       setCreateError('');
       setCreateSuccess(false);
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('biglios')
         .insert({
           title: newBiglioTitle,
