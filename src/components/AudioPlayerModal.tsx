@@ -104,7 +104,8 @@ export function AudioPlayerModal({ book, isOpen, onClose }: AudioPlayerModalProp
       setChapters((data as unknown as Chapter[]) || []);
       
       // Auto-select first chapter with audio
-      const firstChapterWithAudio = data?.find(ch => ch.audio_url);
+      const chapters = data as unknown as Chapter[];
+      const firstChapterWithAudio = chapters?.find(ch => ch.audio_url);
       if (firstChapterWithAudio) {
         setCurrentChapter(firstChapterWithAudio);
       }
