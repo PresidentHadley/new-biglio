@@ -105,9 +105,9 @@ export function useBooks() {
           save_count: book.save_count,
           published_at: book.published_at,
           channel: {
-            handle: (channel?.handle as string) || 'unknown',
-            display_name: (channel?.display_name as string) || 'Unknown Channel',
-            avatar_url: channel?.avatar_url || undefined
+            handle: channel?.handle ? String(channel.handle) : 'unknown',
+            display_name: channel?.display_name ? String(channel.display_name) : 'Unknown Channel',
+            avatar_url: channel?.avatar_url
           }
         };
       }) || [];
