@@ -76,7 +76,7 @@ export default function BookEditor() {
         .order('chapter_number', { ascending: true });
       
       if (error) throw error;
-      setChapters(data || []);
+      setChapters((data as Chapter[]) || []);
       
       // Select first chapter by default
       if (data && data.length > 0 && !selectedChapter) {
