@@ -81,8 +81,8 @@ export default function ChannelPage() {
           throw new Error(`Failed to fetch books: ${booksError.message}`);
         }
 
-        // Map books with stats from database fields (no complex joins needed)
-        const booksWithStats = (booksData as any[])?.map(book => ({
+        // Map books with stats from database fields (no complex joins needed)  
+        const booksWithStats = booksData?.map((book: any) => ({
           ...book,
           chapter_count: book.total_chapters || 0,
           total_duration: book.total_duration_seconds || 0
