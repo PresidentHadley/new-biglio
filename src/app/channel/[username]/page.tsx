@@ -9,14 +9,12 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface Channel {
   id: string;
-  name: string;
-  username: string;
-  description: string;
+  handle: string;
+  display_name: string;
+  bio: string;
   avatar_url: string;
   cover_url: string;
   follower_count: number;
-  following_count: number;
-  book_count: number;
   created_at: string;
   user_id: string;
 }
@@ -53,24 +51,18 @@ export default function ChannelPage() {
           throw new Error('Invalid username');
         }
         
-        // Fetch channel by username
+        // Fetch channel by handle (@username)
         const { data: channelData, error: channelError } = await supabase
           .from('channels')
-          .select(`
-            *,
-            users!channels_user_id_fkey (
-              id,
-              email
-            )
-          `)
-          .eq('username', username)
+          .select('id, handle, display_name, bio, avatar_url, cover_url, follower_count, created_at, user_id')
+          .eq('handle', username)
           .single();
 
         if (channelError) {
           throw new Error(`Channel not found: ${channelError.message}`);
         }
 
-        setChannel(channelData);
+        setChannel(channelData as Channel);
 
         // Check if current user is the owner
         const { data: { user } } = await supabase.auth.getUser();

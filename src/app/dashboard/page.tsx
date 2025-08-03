@@ -22,7 +22,7 @@ export default function Dashboard() {
   const router = useRouter();
   const [biglios, setBiglios] = useState<Biglio[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [userChannel, setUserChannel] = useState<{id: string; name: string; username: string} | null>(null);
+  const [userChannel, setUserChannel] = useState<{id: string; handle: string; display_name: string} | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newBiglioTitle, setNewBiglioTitle] = useState('');
@@ -55,7 +55,7 @@ export default function Dashboard() {
       // Check if user has a channel
       const { data: channel, error } = await supabase
         .from('channels')
-        .select('id, name, username')
+        .select('id, handle, display_name')
         .eq('user_id', user.id)
         .single();
 
