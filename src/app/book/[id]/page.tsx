@@ -99,10 +99,21 @@ export default function UnifiedBookEditor() {
         .eq('id', bookId)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No rows returned - book not found
+          console.log('Book not found:', bookId);
+          setBook(null);
+          setIsLoading(false);
+          return;
+        }
+        throw error;
+      }
       setBook(data as Book);
     } catch (error) {
       console.error('Error fetching book:', error);
+      setBook(null);
+      setIsLoading(false);
     }
   }, [supabase, bookId]);
 
