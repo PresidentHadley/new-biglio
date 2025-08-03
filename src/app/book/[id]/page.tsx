@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useAI } from '@/context/AIContext';
@@ -32,12 +32,16 @@ interface Chapter {
 
 export default function UnifiedBookEditor() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const bookId = params.id as string;
   const { user, loading: authLoading } = useAuth();
   const { generateOutline } = useAI();
 
+  // Get initial mode from URL params or default to 'write'
+  const initialMode = (searchParams.get('mode') as EditorMode) || 'write';
+  
   // Core state
-  const [mode, setMode] = useState<EditorMode>('outline');
+  const [mode, setMode] = useState<EditorMode>(initialMode);
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
