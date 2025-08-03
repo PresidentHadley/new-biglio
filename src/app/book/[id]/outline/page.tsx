@@ -46,7 +46,7 @@ export default function OutlineEditor() {
     try {
       const { data, error } = await supabase
         .from('biglios')
-        .select('*')
+        .select('id, title, description, total_chapters')
         .eq('id', bookId)
         .single();
       
