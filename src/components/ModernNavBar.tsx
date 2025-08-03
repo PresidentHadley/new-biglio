@@ -106,8 +106,6 @@ export function ModernNavBar() {
       <ModernSideNav
         isOpen={isSideNavOpen}
         onClose={closeSideNav}
-        user={user ? { email: user.email, username: user.email?.split('@')[0] } : null}
-        isAuthenticated={isAuthenticated}
         onSignIn={() => setShowAuthModal(true)}
         onSignOut={signOut}
       />

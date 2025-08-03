@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import { 
   FaHome, 
   FaUser, 
@@ -23,12 +24,6 @@ import {
 interface ModernSideNavProps {
   isOpen: boolean;
   onClose: () => void;
-  user?: {
-    username?: string;
-    email?: string;
-    avatar?: string;
-  } | null;
-  isAuthenticated?: boolean;
   onSignIn?: () => void;
   onSignOut?: () => void;
 }
@@ -47,11 +42,11 @@ interface NavItem {
 export function ModernSideNav({ 
   isOpen, 
   onClose, 
-  user, 
-  isAuthenticated = false,
   onSignIn,
   onSignOut 
 }: ModernSideNavProps) {
+  const { user, loading } = useAuth();
+  const isAuthenticated = !!user;
   const pathname = usePathname();
   const [touchStart, setTouchStart] = useState<number | null>(null);
 
