@@ -358,54 +358,54 @@ Let's create something amazing!`;
 
   return (
     <div className={`flex flex-col h-full bg-white ${className}`}>
-      {/* Combined Header & Quick Actions */}
-      <div className="p-3 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50 flex-shrink-0">
-        {/* Compact Header Row */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <FaRobot className="text-purple-600" size={18} />
-            <h3 className="font-medium text-gray-900">AI Assistant</h3>
-            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-              {mode === 'outline' ? '📋 Research Mode' : '✍️ Writing Mode'}
+      {/* Ultra-Compact Header */}
+      <div className="p-2 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50 flex-shrink-0">
+        {/* Single Row: Title + Mode + Controls */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1.5">
+            <FaRobot className="text-purple-600" size={16} />
+            <h3 className="font-medium text-gray-900 text-sm">AI Assistant</h3>
+            <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full">
+              {mode === 'outline' ? '📋' : '✍️'}
             </span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <button
               onClick={() => setShowSettings(!showSettings)}
-              className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
+              className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
               title="Settings"
             >
-              <FaCog size={14} />
+              <FaCog size={12} />
             </button>
             <button
               onClick={handleClearConversation}
-              className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
+              className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
               title="Clear conversation"
             >
-              <FaTimes size={14} />
+              <FaTimes size={12} />
             </button>
           </div>
         </div>
 
-        {/* Working On & Quick Prompts Combined */}
-        <div className="space-y-2">
+        {/* Working On (if exists) + Quick Prompts */}
+        <div className="space-y-1.5">
           {book && currentChapter && (
-            <p className="text-xs text-gray-600">
-              Working on: <span className="font-medium">{currentChapter.title}</span>
+            <p className="text-xs text-gray-600 truncate">
+              <span className="font-medium">{currentChapter.title}</span>
             </p>
           )}
           
-          {/* Compact Quick Prompts */}
-          <div className="grid grid-cols-2 gap-1.5">
+          {/* Mini Quick Prompts */}
+          <div className="grid grid-cols-2 gap-1">
             {promptTypes.map(({ type, icon: Icon, text, description, color }) => (
               <button
                 key={type}
                 onClick={() => handlePromptType(type)}
                 disabled={isLoading}
-                className={`flex items-center gap-1.5 p-2 rounded border border-gray-200 ${color} transition-colors text-left disabled:opacity-50`}
+                className={`flex items-center gap-1 p-1.5 rounded border border-gray-200 ${color} transition-colors text-left disabled:opacity-50`}
                 title={description}
               >
-                <Icon size={12} />
+                <Icon size={10} />
                 <span className="font-medium text-xs">{text}</span>
               </button>
             ))}
