@@ -82,13 +82,13 @@ export default function ChannelPage() {
         }
 
         // Map books with stats from database fields (no complex joins needed)
-        const booksWithStats = booksData.map(book => ({
+        const booksWithStats = (booksData as any[])?.map(book => ({
           ...book,
           chapter_count: book.total_chapters || 0,
           total_duration: book.total_duration_seconds || 0
         }));
 
-        setBooks(booksWithStats);
+        setBooks(booksWithStats as Book[]);
 
       } catch (err) {
         console.error('Error fetching channel data:', err);
