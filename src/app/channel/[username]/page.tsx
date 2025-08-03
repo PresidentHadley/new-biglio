@@ -62,11 +62,12 @@ export default function ChannelPage() {
           throw new Error(`Channel not found: ${channelError.message}`);
         }
 
-        setChannel(channelData as Channel);
+        const channel = channelData as Channel;
+        setChannel(channel);
 
         // Check if current user is the owner
         const { data: { user } } = await supabase.auth.getUser();
-        setIsOwner(user?.id === channelData.user_id);
+        setIsOwner(user?.id === channel.user_id);
 
         // Fetch books for this channel
         const { data: booksData, error: booksError } = await supabase
@@ -84,7 +85,7 @@ export default function ChannelPage() {
               duration_seconds
             )
           `)
-          .eq('channel_id', channelData.id)
+          .eq('channel_id', channel.id)
           .eq('is_published', true)
           .order('created_at', { ascending: false });
 
