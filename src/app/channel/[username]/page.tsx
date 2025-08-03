@@ -17,6 +17,12 @@ interface Channel {
   follower_count: number;
   created_at: string;
   user_id: string;
+  // Add missing properties for ChannelHeader compatibility
+  name: string;
+  username: string;
+  description: string;
+  following_count: number;
+  book_count: number;
 }
 
 interface Book {
@@ -74,7 +80,14 @@ export default function ChannelPage() {
           throw new Error(`Channel not found: ${channelError.message}`);
         }
 
-        const channel = channelData as Channel;
+        const channel = {
+          ...channelData,
+          name: channelData.display_name,
+          username: channelData.handle,
+          description: channelData.bio || '',
+          following_count: 0,
+          book_count: 0
+        } as Channel;
         setChannel(channel);
 
         // Check if current user is the owner
