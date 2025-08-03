@@ -80,7 +80,7 @@ export default function ChannelPage() {
             channel_id,
             created_at,
             updated_at,
-            chapters!chapters_biglio_id_fkey (
+            chapters (
               id,
               duration_seconds
             )
