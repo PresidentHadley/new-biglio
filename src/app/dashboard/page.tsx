@@ -23,7 +23,6 @@ export default function Dashboard() {
   const [biglios, setBiglios] = useState<Biglio[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userChannel, setUserChannel] = useState<{id: string; name: string; username: string} | null>(null);
-  const supabase = createClient();
   const [isCreating, setIsCreating] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newBiglioTitle, setNewBiglioTitle] = useState('');
@@ -31,6 +30,7 @@ export default function Dashboard() {
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const fetchBooksForChannel = useCallback(async (channelId: string) => {
+    const supabase = createClient();
     try {
       const { data, error } = await supabase
         .from('biglios')
@@ -45,11 +45,12 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [supabase]);
+  }, []);
 
   const checkUserChannel = useCallback(async () => {
     if (!user) return;
 
+    const supabase = createClient();
     try {
       // Check if user has a channel
       const { data: channel, error } = await supabase
@@ -74,7 +75,7 @@ export default function Dashboard() {
       console.error('Error checking user channel:', err);
       setIsLoading(false);
     }
-  }, [user, supabase, router, fetchBooksForChannel]);
+  }, [user, router, fetchBooksForChannel]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -92,6 +93,7 @@ export default function Dashboard() {
   const createBiglio = async () => {
     if (!newBiglioTitle.trim()) return;
     
+    const supabase = createClient();
     try {
       setIsCreating(true);
       

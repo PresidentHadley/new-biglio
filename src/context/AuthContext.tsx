@@ -23,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Use singleton client to prevent multiple GoTrueClient instances
   const supabase = createClient();
 
   useEffect(() => {
