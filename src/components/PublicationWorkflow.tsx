@@ -35,7 +35,7 @@ export function PublicationWorkflow({ bookId, currentStatus, onStatusChange }: P
         .order('order_index');
 
       if (!error && data) {
-        setChapters(data);
+        setChapters(data as unknown as Chapter[]);
       }
       setLoading(false);
     };
