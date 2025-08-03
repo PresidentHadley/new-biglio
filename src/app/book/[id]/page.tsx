@@ -55,12 +55,12 @@ export default function BookEditor() {
     try {
       const { data, error } = await supabase
         .from('biglios')
-        .select('*')
+        .select('id, title, description, total_chapters, is_published')
         .eq('id', bookId)
         .single();
       
       if (error) throw error;
-      setBook(data);
+      setBook(data as Book);
     } catch (error) {
       console.error('Error fetching book:', error);
     }
@@ -71,7 +71,7 @@ export default function BookEditor() {
       setIsLoading(true);
       const { data, error } = await supabase
         .from('chapters')
-        .select('*')
+        .select('id, title, content, chapter_number, is_published, duration_seconds, audio_url')
         .eq('biglio_id', bookId)
         .order('chapter_number', { ascending: true });
       

@@ -34,7 +34,7 @@ export default function Dashboard() {
     try {
       const { data, error } = await supabase
         .from('biglios')
-        .select('*')
+        .select('id, title, description, total_chapters, is_published, updated_at, channel_id')
         .eq('channel_id', channelId)
         .order('created_at', { ascending: false });
 
@@ -55,7 +55,7 @@ export default function Dashboard() {
       // Check if user has a channel
       const { data: channel, error } = await supabase
         .from('channels')
-        .select('*')
+        .select('id, name, username')
         .eq('user_id', user.id)
         .single();
 
