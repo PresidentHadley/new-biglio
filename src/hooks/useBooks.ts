@@ -83,7 +83,7 @@ export function useBooks() {
       const channelsMap = new Map(channelsData?.map(channel => [channel.id, channel]) || []);
 
       // Transform the data to match our interface
-      const transformedBooks: Book[] = (bigliosData as any[])?.map((book: any) => {
+      const transformedBooks: Book[] = (bigliosData as unknown as SupabaseBiglio[])?.map((book: SupabaseBiglio) => {
         const channel = channelsMap.get(book.channel_id);
         return {
           id: book.id,
