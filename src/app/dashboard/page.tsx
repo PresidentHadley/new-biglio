@@ -28,6 +28,8 @@ export default function Dashboard() {
   const [newBiglioTitle, setNewBiglioTitle] = useState('');
   const [newBiglioDescription, setNewBiglioDescription] = useState('');
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [createSuccess, setCreateSuccess] = useState(false);
+  const [createError, setCreateError] = useState('');
 
   const fetchBooksForChannel = useCallback(async (channelId: string) => {
     const supabase = createClient();
@@ -91,42 +93,20 @@ export default function Dashboard() {
 
 
   const createBiglio = async () => {
-    if (!newBiglioTitle.trim()) return;
+    if (!newBiglioTitle.trim() || !userChannel?.id) return;
     
     const supabase = createClient();
     try {
       setIsCreating(true);
-      
-      // For now, use the first channel we can find or create a default one
-      const { data: channels } = await supabase
-        .from('channels')
-        .select('id')
-        .limit(1);
-      
-      let channelId = channels?.[0]?.id;
-      
-      if (!channelId) {
-        // Create a default channel if none exists
-        const { data: newChannel, error: channelError } = await supabase
-          .from('channels')
-          .insert({
-            handle: 'mybooks',
-            display_name: 'My Books',
-            bio: 'My book collection'
-          })
-          .select('id')
-          .single();
-        
-        if (channelError) throw channelError;
-        channelId = newChannel.id;
-      }
+      setCreateError('');
+      setCreateSuccess(false);
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('biglios')
         .insert({
           title: newBiglioTitle,
           description: newBiglioDescription || '',
-          channel_id: channelId,
+          channel_id: userChannel.id,
           total_chapters: 0,
           is_published: false
         })
@@ -135,12 +115,21 @@ export default function Dashboard() {
 
       if (error) throw error;
 
+      // Success! Show feedback and refresh
+      setCreateSuccess(true);
       setNewBiglioTitle('');
       setNewBiglioDescription('');
       setShowCreateForm(false);
-      fetchBooksForChannel(userChannel?.id || '');
+      
+      // Refresh the biglios list
+      await fetchBooksForChannel(userChannel.id);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setCreateSuccess(false), 3000);
+      
     } catch (error) {
       console.error('Error creating biglio:', error);
+      setCreateError(error instanceof Error ? error.message : 'Failed to create biglio');
     } finally {
       setIsCreating(false);
     }
@@ -164,6 +153,13 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Success Message */}
+        {createSuccess && (
+          <div className="bg-green-800 border border-green-600 text-green-100 px-6 py-4 rounded-lg mb-6">
+            ✅ Biglio created successfully! 🎉
+          </div>
+        )}
+
         {/* Create Biglio Form */}
         {showCreateForm && (
           <div className="bg-gray-800 rounded-lg p-6 mb-8">
@@ -172,17 +168,25 @@ export default function Dashboard() {
               <input
                 type="text"
                 placeholder="Biglio Title"
-                                  value={newBiglioTitle}
-                  onChange={(e) => setNewBiglioTitle(e.target.value)}
+                value={newBiglioTitle}
+                onChange={(e) => setNewBiglioTitle(e.target.value)}
                 className="w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
               />
               <textarea
                 placeholder="Biglio Description (optional)"
-                                  value={newBiglioDescription}
-                  onChange={(e) => setNewBiglioDescription(e.target.value)}
+                value={newBiglioDescription}
+                onChange={(e) => setNewBiglioDescription(e.target.value)}
                 rows={3}
                 className="w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none resize-none"
               />
+              
+              {/* Error Message */}
+              {createError && (
+                <div className="bg-red-800 border border-red-600 text-red-100 px-4 py-3 rounded-lg">
+                  ❌ {createError}
+                </div>
+              )}
+              
               <div className="flex gap-4">
                 <button
                   onClick={createBiglio}
@@ -192,7 +196,10 @@ export default function Dashboard() {
                   {isCreating ? 'Creating...' : 'Create Biglio'}
                 </button>
                 <button
-                  onClick={() => setShowCreateForm(false)}
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setCreateError('');
+                  }}
                   className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-semibold transition-colors"
                 >
                   Cancel
