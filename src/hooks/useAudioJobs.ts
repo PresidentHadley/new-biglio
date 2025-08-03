@@ -34,7 +34,7 @@ export function useAudioJobs(chapterId?: string) {
           .order('created_at', { ascending: false });
 
         if (error) throw error;
-        setJobs(data || []);
+        setJobs((data as unknown as AudioJob[]) || []);
       } catch (err) {
         console.error('Error fetching audio jobs:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch audio jobs');
