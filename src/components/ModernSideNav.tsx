@@ -65,7 +65,7 @@ export function ModernSideNav({
         .single();
       
       if (data) {
-        setUserChannelHandle(data.handle);
+        setUserChannelHandle(String(data.handle));
       }
     };
 
