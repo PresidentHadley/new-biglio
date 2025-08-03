@@ -50,7 +50,7 @@ export function useBooks() {
 
   useEffect(() => {
     fetchBooks();
-  }, []);
+  }, [fetchBooks]);
 
   const fetchBooks = async () => {
     try {
@@ -109,9 +109,9 @@ export function useBooks() {
           save_count: book.save_count,
           published_at: book.published_at,
           channel: {
-            handle: channel?.handle || 'unknown',
-            display_name: channel?.display_name || 'Unknown Channel',
-            avatar_url: channel?.avatar_url
+            handle: (channel?.handle as string) || 'unknown',
+            display_name: (channel?.display_name as string) || 'Unknown Channel',
+            avatar_url: channel?.avatar_url || undefined
           }
         };
       }) || [];

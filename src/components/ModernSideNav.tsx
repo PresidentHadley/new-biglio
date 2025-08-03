@@ -45,7 +45,7 @@ export function ModernSideNav({
   onSignIn,
   onSignOut 
 }: ModernSideNavProps) {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const isAuthenticated = !!user;
   const pathname = usePathname();
   const [touchStart, setTouchStart] = useState<number | null>(null);
