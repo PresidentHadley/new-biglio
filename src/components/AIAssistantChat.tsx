@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAI, AIPromptType, AIContextMode } from '@/context/AIContext';
 import { 
   FaPaperPlane, 
@@ -10,7 +10,6 @@ import {
   FaLightbulb,
   FaMagic,
   FaEdit,
-  FaQuestionCircle,
   FaCog,
   FaTimes,
   FaBook,
@@ -44,17 +43,19 @@ interface Chapter {
 interface AIAssistantChatProps {
   book?: Book;
   currentChapter?: Chapter;
+  mode?: 'outline' | 'write';
   onContentSuggestion?: (content: string) => void;
   onInsertContent?: (content: string) => void;
   className?: string;
 }
 
-export function AIAssistantChat({ 
-  book, 
-  currentChapter, 
+export function AIAssistantChat({
+  book,
+  currentChapter,
+  mode = 'write',
   onContentSuggestion,
   onInsertContent,
-  className = '' 
+  className = ''
 }: AIAssistantChatProps) {
   
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -72,44 +73,74 @@ export function AIAssistantChat({
     error 
   } = useAI();
 
-  // Sophisticated prompt types (upgraded from old system)
-  const promptTypes = [
-    { 
-      type: AIPromptType.CHAPTER_IDEA, 
-      icon: FaLightbulb, 
-      text: "Chapter Ideas", 
-      description: "Generate creative ideas for new chapters",
-      color: "text-yellow-600 bg-yellow-50 hover:bg-yellow-100"
-    },
-    { 
-      type: AIPromptType.PLOT_DEVELOPMENT, 
-      icon: FaMagic, 
-      text: "Plot Development", 
-      description: "Help advance the plot with complications and twists",
-      color: "text-purple-600 bg-purple-50 hover:bg-purple-100"
-    },
-    { 
-      type: AIPromptType.CHARACTER_DEVELOPMENT, 
-      icon: FaUser, 
-      text: "Character Development", 
-      description: "Suggest character arc development",
-      color: "text-blue-600 bg-blue-50 hover:bg-blue-100"
-    },
-    { 
-      type: AIPromptType.STYLE_IMPROVEMENT, 
-      icon: FaEdit, 
-      text: "Style Improvement", 
-      description: "Analyze and improve writing style",
-      color: "text-green-600 bg-green-50 hover:bg-green-100"
-    },
-    { 
-      type: AIPromptType.GENERAL, 
-      icon: FaQuestionCircle, 
-      text: "General Help", 
-      description: "Creative writing assistance",
-      color: "text-gray-600 bg-gray-50 hover:bg-gray-100"
+  // Mode-aware prompt types (upgraded from old system)
+  const getPromptTypes = () => {
+    if (mode === 'outline') {
+      return [
+        { 
+          type: AIPromptType.CHAPTER_IDEA, 
+          icon: FaLightbulb, 
+          text: "Chapter Ideas", 
+          description: "Generate creative chapter concepts",
+          color: "text-yellow-600 bg-yellow-50 hover:bg-yellow-100"
+        },
+        { 
+          type: AIPromptType.PLOT_DEVELOPMENT, 
+          icon: FaMagic, 
+          text: "Plot Structure", 
+          description: "Plan story arcs and plot development",
+          color: "text-purple-600 bg-purple-50 hover:bg-purple-100"
+        },
+        { 
+          type: AIPromptType.CHARACTER_DEVELOPMENT, 
+          icon: FaUser, 
+          text: "Character Planning", 
+          description: "Design character arcs and relationships",
+          color: "text-blue-600 bg-blue-50 hover:bg-blue-100"
+        },
+        { 
+          type: AIPromptType.GENERAL, 
+          icon: FaBook, 
+          text: "Research", 
+          description: "Research topics and background info",
+          color: "text-indigo-600 bg-indigo-50 hover:bg-indigo-100"
+        }
+      ];
+    } else {
+      return [
+        { 
+          type: AIPromptType.CHAPTER_IDEA, 
+          icon: FaLightbulb, 
+          text: "Start Writing", 
+          description: "Get help starting this chapter",
+          color: "text-yellow-600 bg-yellow-50 hover:bg-yellow-100"
+        },
+        { 
+          type: AIPromptType.PLOT_DEVELOPMENT, 
+          icon: FaMagic, 
+          text: "Continue Story", 
+          description: "What happens next in the story",
+          color: "text-purple-600 bg-purple-50 hover:bg-purple-100"
+        },
+        { 
+          type: AIPromptType.CHARACTER_DEVELOPMENT, 
+          icon: FaUser, 
+          text: "Character Scene", 
+          description: "Develop characters in this scene",
+          color: "text-blue-600 bg-blue-50 hover:bg-blue-100"
+        },
+        { 
+          type: AIPromptType.STYLE_IMPROVEMENT, 
+          icon: FaEdit, 
+          text: "Improve Writing", 
+          description: "Enhance style and flow",
+          color: "text-green-600 bg-green-50 hover:bg-green-100"
+        }
+      ];
     }
-  ];
+  };
+
+  const promptTypes = getPromptTypes();
 
   // Context modes (upgraded from old system)
   const contextModes = [
@@ -138,41 +169,61 @@ export function AIAssistantChat({
   }, [messages]);
 
   useEffect(() => {
-    // Welcome message when component mounts
-    if (messages.length === 0) {
-      const welcomeMessage: ChatMessage = {
-        id: `welcome-${Date.now()}`,
-        role: 'assistant',
-        content: getWelcomeMessage(),
-        timestamp: new Date()
-      };
-      setMessages([welcomeMessage]);
-    }
-  }, [book, currentChapter]);
+    // Update welcome message when mode, book, or chapter changes
+    const welcomeMessage: ChatMessage = {
+      id: `welcome-${Date.now()}`,
+      role: 'assistant',
+      content: getWelcomeMessage(),
+      timestamp: new Date()
+    };
+    setMessages([welcomeMessage]);
+  }, [getWelcomeMessage]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const getWelcomeMessage = () => {
-    if (book && currentChapter) {
-      return `Hi! I'm your advanced AI writing assistant. I can see you're working on "${currentChapter.title}" in "${book.title}". 
+  const getWelcomeMessage = useCallback(() => {
+    if (mode === 'outline') {
+      if (book && currentChapter) {
+        return `📋 **Research Mode Activated**
 
-I have 5 sophisticated modes to help you:
-• **Chapter Ideas** - Generate creative chapter concepts
-• **Plot Development** - Advance your story with twists
-• **Character Development** - Deepen character arcs  
-• **Style Improvement** - Enhance your writing craft
-• **General Help** - Creative writing guidance
+I'm helping you plan and outline "${book.title}". Currently viewing "${currentChapter.title}".
 
-Current context mode: **${contextMode.charAt(0).toUpperCase() + contextMode.slice(1)}**
+I can help with:
+• **Chapter Ideas** - Generate creative concepts
+• **Plot Structure** - Plan story arcs and development  
+• **Character Planning** - Design character relationships
+• **Research** - Background info and world-building
 
-How can I help you with your writing today?`;
-    } else if (book) {
-      return `Hi! I'm your AI writing assistant for "${book.title}". I have multiple specialized modes to help with different aspects of your writing. How can I assist you today?`;
+**Context: ${contextMode.charAt(0).toUpperCase() + contextMode.slice(1)} Mode**
+
+What would you like to plan or research?`;
+      } else if (book) {
+        return `📋 **Research Mode** for "${book.title}"\n\nI'm here to help you plan, outline, and research. What aspect of your book would you like to work on?`;
+      }
+      return `📋 **Research Mode**\n\nI'm here to help you plan and outline your book. What would you like to explore?`;
+    } else {
+      if (book && currentChapter) {
+        return `✍️ **Writing Mode Activated**
+
+Ready to write "${currentChapter.title}" in "${book.title}".
+
+I can help you:
+• **Start Writing** - Get the chapter flowing
+• **Continue Story** - What happens next
+• **Character Scenes** - Develop characters
+• **Improve Writing** - Enhance style and flow
+
+**Context: ${contextMode.charAt(0).toUpperCase() + contextMode.slice(1)} Mode**
+
+Let's create something amazing!`;
+      } else if (book) {
+        return `✍️ **Writing Mode** for "${book.title}"\n\nI'm here to help you write and improve your content. Select a chapter to begin!`;
+      }
+      return `✍️ **Writing Mode**\n\nI'm ready to help you write! What would you like to work on?`;
     }
-    return `Hi! I'm your AI writing assistant. I can help with chapter ideas, plot development, character arcs, style improvement, and general creative writing. What would you like to work on?`;
-  };
+  }, [mode, book, currentChapter, contextMode]);
 
   const buildContext = () => {
     return {
@@ -370,7 +421,9 @@ How can I help you with your writing today?`;
 
       {/* Quick Prompts */}
       <div className="p-4 border-b border-gray-200 bg-gray-50">
-        <h4 className="font-medium text-gray-900 mb-3">Quick Writing Prompts</h4>
+        <h4 className="font-medium text-gray-900 mb-3">
+          {mode === 'outline' ? 'Quick Research Prompts' : 'Quick Writing Prompts'}
+        </h4>
         <div className="grid grid-cols-2 gap-2">
           {promptTypes.map(({ type, icon: Icon, text, description, color }) => (
             <button

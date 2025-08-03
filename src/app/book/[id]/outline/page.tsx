@@ -20,6 +20,13 @@ interface OutlineItem {
   order_index: number;
 }
 
+interface SupabaseChapter {
+  id: unknown;
+  title: unknown;
+  content: unknown;
+  chapter_number: unknown;
+}
+
 export default function OutlineEditor() {
   const params = useParams();
   const bookId = params.id as string;
@@ -71,13 +78,13 @@ export default function OutlineEditor() {
       if (error) throw error;
 
       if (chapters && chapters.length > 0) {
-        const chapterOutline: OutlineItem[] = chapters.map((chapter) => ({
-          id: chapter.id,
-          title: chapter.title,
+        const chapterOutline: OutlineItem[] = (chapters as SupabaseChapter[]).map((chapter) => ({
+          id: String(chapter.id),
+          title: String(chapter.title),
           description: chapter.content ? 
-            `${chapter.content.substring(0, 150)}${chapter.content.length > 150 ? '...' : ''}` :
+            `${String(chapter.content).substring(0, 150)}${String(chapter.content).length > 150 ? '...' : ''}` :
             'No content yet',
-          order_index: chapter.chapter_number
+          order_index: Number(chapter.chapter_number)
         }));
         
         setOutline(chapterOutline);

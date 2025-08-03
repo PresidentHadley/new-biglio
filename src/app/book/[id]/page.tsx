@@ -4,11 +4,13 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { useAI } from '@/context/AIContext';
 import { AuthModal } from '@/components/AuthModal';
-import Link from 'next/link';
-
 import { AudioGenerationButton } from '@/components/AudioGenerationButton';
 import { AIAssistantChat } from '@/components/AIAssistantChat';
+import Link from 'next/link';
+
+type EditorMode = 'outline' | 'write';
 
 interface Book {
   id: string;
@@ -24,33 +26,55 @@ interface Chapter {
   content: string;
   chapter_number: number;
   is_published: boolean;
-  duration_seconds: number;
+  duration_seconds?: number;
   audio_url?: string;
 }
 
-export default function BookEditor() {
+export default function UnifiedBookEditor() {
   const params = useParams();
-
-  const { user, loading: authLoading } = useAuth();
   const bookId = params.id as string;
+  const { user, loading: authLoading } = useAuth();
+  const { generateOutline } = useAI();
+
+  // Core state
+  const [mode, setMode] = useState<EditorMode>('outline');
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
-  const supabase = createClient();
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [showCreateChapter, setShowCreateChapter] = useState(false);
-  const [showAIChat, setShowAIChat] = useState(false);
-  
-  // Form states
+  const [isLoading, setIsLoading] = useState(true);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Editor state
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
-  const [newChapterTitle, setNewChapterTitle] = useState('');
-  const [isWritingChapter, setIsWritingChapter] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [savingChapter, setSavingChapter] = useState(false);
 
-  // const aiContext = useContext(AIContext); // TODO: Implement AI chat functionality
+  // Chapter creation
+  const [showCreateChapter, setShowCreateChapter] = useState(false);
+  const [newChapterTitle, setNewChapterTitle] = useState('');
+
+  // AI state
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [isGeneratingOutline, setIsGeneratingOutline] = useState(false);
+
+  const supabase = createClient();
+
+  // Check authentication and load data
+  useEffect(() => {
+    if (authLoading) return;
+    
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    
+    setShowAuthModal(false);
+    if (bookId) {
+      fetchBookData();
+      fetchChapters();
+    }
+  }, [bookId, user, authLoading]);
 
   const fetchBookData = async () => {
     try {
@@ -75,16 +99,18 @@ export default function BookEditor() {
         .select('id, title, content, chapter_number, is_published, duration_seconds, audio_url')
         .eq('biglio_id', bookId)
         .order('chapter_number', { ascending: true });
-      
+
       if (error) throw error;
-      setChapters((data as Chapter[]) || []);
       
-      // Select first chapter by default
-      if (data && data.length > 0 && !selectedChapter) {
-        const chapters = data as Chapter[];
-        setSelectedChapter(chapters[0]);
-        setEditTitle(chapters[0].title);
-        setEditContent(chapters[0].content);
+      const chaptersData = (data as Chapter[]) || [];
+      setChapters(chaptersData);
+      
+      // Auto-select first chapter if none selected
+      if (chaptersData.length > 0 && !selectedChapter) {
+        const firstChapter = chaptersData[0];
+        setSelectedChapter(firstChapter);
+        setEditTitle(firstChapter.title);
+        setEditContent(firstChapter.content);
       }
     } catch (error) {
       console.error('Error fetching chapters:', error);
@@ -92,20 +118,6 @@ export default function BookEditor() {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (!authLoading && !user) {
-      setShowAuthModal(true);
-      return;
-    }
-    
-    if (bookId && user) {
-      setShowAuthModal(false);
-      fetchBookData();
-      fetchChapters();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookId, user, authLoading]);
 
   const createChapter = async () => {
     if (!newChapterTitle.trim() || !book) return;
@@ -120,12 +132,9 @@ export default function BookEditor() {
           title: newChapterTitle,
           content: '',
           chapter_number: nextChapterNumber,
-          order_index: nextChapterNumber,
           is_published: false,
           duration_seconds: 0
-        })
-        .select()
-        .single();
+        });
 
       if (error) throw error;
 
@@ -170,7 +179,6 @@ export default function BookEditor() {
       setSelectedChapter(prev => prev ? { ...prev, title: editTitle, content: editContent } : null);
       setIsEditing(false);
       
-      // Show success feedback
       console.log('Chapter saved successfully!');
     } catch (error) {
       console.error('Error saving chapter:', error);
@@ -192,63 +200,74 @@ export default function BookEditor() {
     setIsEditing(false);
   };
 
-  const insertAIContent = (content: string) => {
-    // Insert AI content at cursor position or append to current content
-    const insertion = editContent ? '\n\n' + content : content;
-    setEditContent(prev => prev + insertion);
-    if (!isEditing) {
-      setIsEditing(true);
-    }
-  };
+  const generateAIOutline = async () => {
+    if (!book) return;
 
-  const startWritingChapter = async () => {
-    if (!selectedChapter) return;
-    
-    setIsWritingChapter(true);
     try {
-      // Call AI to start writing this chapter - would use prompt in future implementation
-      // This would use the AI context - for now, we'll add placeholder
-      const aiContent = "This is where the AI would generate chapter content...";
-      insertAIContent(aiContent);
-    } catch (error) {
-      console.error('Error starting chapter:', error);
-    } finally {
-      setIsWritingChapter(false);
-    }
-  };
+      setIsGeneratingOutline(true);
+      
+      const promptText = aiPrompt || `Generate a comprehensive outline for a book titled "${book.title}"${book.description ? ` with the description: ${book.description}` : ''}. Create 8-12 chapters with engaging titles and detailed descriptions.`;
 
-  const finishChapter = async () => {
-    if (!selectedChapter) return;
-    
-    setIsWritingChapter(true);
-    try {
-      // Call AI to finish this chapter - would use prompt in future implementation
-      // This would use the AI context - for now, we'll add placeholder  
-      const aiContent = "This is where the AI would generate chapter conclusion...";
-      insertAIContent(aiContent);
+      const result = await generateOutline(
+        book.title,
+        book.description || '',
+        {
+          additionalPrompt: promptText,
+          chapterCount: 10
+        }
+      );
+
+      if (result && result.length > 0) {
+        // Create chapters from AI outline
+        for (let i = 0; i < result.length; i++) {
+          const chapter = result[i];
+          await supabase
+            .from('chapters')
+            .insert({
+              biglio_id: bookId,
+              title: chapter.title,
+              content: `# ${chapter.title}\n\n${chapter.summary || ''}\n\n[Start writing your chapter content here...]`,
+              chapter_number: i + 1,
+              is_published: false,
+              duration_seconds: 0
+            });
+        }
+
+        // Update book's total chapters
+        await supabase
+          .from('biglios')
+          .update({ total_chapters: result.length })
+          .eq('id', bookId);
+
+        setAiPrompt('');
+        fetchChapters();
+        fetchBookData();
+      }
     } catch (error) {
-      console.error('Error finishing chapter:', error);
+      console.error('Error generating outline:', error);
     } finally {
-      setIsWritingChapter(false);
+      setIsGeneratingOutline(false);
     }
   };
 
   const getCharacterCount = () => editContent.length;
   const getWordCount = () => editContent.trim().split(/\s+/).filter(word => word.length > 0).length;
-  const isNearLimit = () => getCharacterCount() > 6500; // Warning at 6500
-  const isOverLimit = () => getCharacterCount() > 7500; // Hard limit at 7500
+  const isNearLimit = () => getCharacterCount() > 6500;
+  const isOverLimit = () => getCharacterCount() > 7500;
 
+  // Loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
           <p className="text-gray-900 mt-4">Loading book...</p>
         </div>
       </div>
     );
   }
 
+  // No book found
   if (!book) {
     return (
       <div className="min-h-screen bg-gray-50 p-8">
@@ -260,255 +279,275 @@ export default function BookEditor() {
     );
   }
 
-  // Show workflow guidance if no chapters exist yet
-  if (chapters.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="max-w-2xl mx-auto text-center p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">📝 Ready to Write "{book.title}"?</h1>
-          <p className="text-gray-600 mb-8 text-lg">Let's create your book outline first, then start writing!</p>
-          
-          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 mb-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">📋 Step 1: Create Your Outline</h3>
-            <p className="text-gray-600 mb-4">Use AI to generate a comprehensive outline, or create one manually.</p>
-            <Link
-              href={`/book/${bookId}/outline`}
-              className="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors"
-            >
-              🤖 Create Outline
-            </Link>
-          </div>
-          
-          <div className="bg-gray-100 rounded-lg p-6 mb-6">
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">✍️ Step 2: Write Your Chapters</h3>
-            <p className="text-gray-600">Once you have an outline, come back here to write your chapters.</p>
-          </div>
-
-          <div className="text-sm text-gray-500 mb-4">
-            <strong>Or skip the outline:</strong>
-          </div>
-          <button
-            onClick={() => setShowCreateChapter(true)}
-            className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
-          >
-            ➕ Create First Chapter Manually
-          </button>
-          
-          <div className="mt-6">
-            <Link href="/dashboard" className="text-blue-600 hover:text-blue-800">← Back to Dashboard</Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="h-screen bg-gray-50 flex overflow-hidden">
-      {/* Sidebar - Chapters List */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col shadow-sm">
-        <div className="p-4 border-b border-gray-200">
-          <Link href="/dashboard" className="text-blue-600 hover:text-blue-800 text-sm">← Dashboard</Link>
-          <h2 className="text-xl font-bold text-gray-900 mt-2 truncate">{book.title}</h2>
-          <p className="text-gray-600 text-sm">{chapters.length} chapters</p>
-        </div>
-        
-        <div className="p-4 border-b border-gray-200">
-          <button
-            onClick={() => setShowCreateChapter(!showCreateChapter)}
-            className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold transition-colors"
-          >
-            ➕ New Chapter
-          </button>
-        </div>
-
-        {showCreateChapter && (
-          <div className="p-4 border-b border-gray-200 bg-gray-50">
-            <input
-              type="text"
-              placeholder="Chapter title"
-              value={newChapterTitle}
-              onChange={(e) => setNewChapterTitle(e.target.value)}
-              className="w-full p-2 bg-white text-gray-900 rounded border border-gray-300 focus:border-blue-500 focus:outline-none mb-2"
-              onKeyPress={(e) => e.key === 'Enter' && createChapter()}
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={createChapter}
-                disabled={!newChapterTitle.trim()}
-                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded text-sm"
-              >
-                Create
-              </button>
-              <button
-                onClick={() => setShowCreateChapter(false)}
-                className="px-3 py-1 bg-gray-400 hover:bg-gray-500 text-white rounded text-sm"
-              >
-                Cancel
-              </button>
-            </div>
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+      {/* Header with Mode Toggle */}
+      <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard" className="text-blue-600 hover:text-blue-800 text-sm">← Dashboard</Link>
+            <h1 className="text-2xl font-bold text-gray-900">{book.title}</h1>
           </div>
-        )}
-
-        <div className="flex-1 overflow-y-auto">
-          {chapters.map((chapter) => (
-            <div
-              key={chapter.id}
-              onClick={() => selectChapter(chapter)}
-              className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
-                selectedChapter?.id === chapter.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+          
+          {/* Mode Toggle */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setMode('outline')}
+              className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
+                mode === 'outline' 
+                  ? 'bg-purple-600 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-gray-900 font-semibold truncate">{chapter.title}</h3>
-                  <p className="text-gray-600 text-sm">Chapter {chapter.chapter_number}</p>
-                  <p className="text-gray-500 text-xs">{chapter.content.length} characters</p>
-                </div>
-                <div className="flex flex-col gap-1 ml-2">
-                  {chapter.content.trim() && (
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                      ✍️
-                    </span>
-                  )}
-                  {chapter.content.trim() && chapter.content.length <= 7500 && !chapter.audio_url && (
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        try {
-                          const response = await fetch('/api/audio/generate', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              chapterId: chapter.id,
-                              text: chapter.content,
-                              voice: 'female'
-                            })
-                          });
-                          
-                          if (response.ok) {
-                            const result = await response.json();
-                            console.log('Audio generated:', result.audioUrl);
-                            // Refresh chapters to show new audio
-                            fetchChapters();
-                          } else {
-                            console.error('Audio generation failed');
-                          }
-                        } catch (error) {
-                          console.error('Error generating audio:', error);
-                        }
-                      }}
-                      className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded-full transition-colors"
-                      title="Generate audio"
-                    >
-                      🎵
-                    </button>
-                  )}
-                  {chapter.audio_url && (
-                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-                      🔊
-                    </span>
-                  )}
-                  {chapter.content.length > 7500 && (
-                    <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full" title="Over character limit">
-                      ⚠️
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+              📋 Outline Mode
+            </button>
+            <button
+              onClick={() => setMode('write')}
+              className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
+                mode === 'write' 
+                  ? 'bg-green-600 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              ✍️ Write Mode
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Main Editor */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {selectedChapter ? (
-          <>
-            {/* Header */}
-            <div className="p-6 border-b border-gray-200 bg-white shadow-sm">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">{selectedChapter.title}</h1>
-                  <p className="text-gray-600">Chapter {selectedChapter.chapter_number}</p>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowAIChat(!showAIChat)}
-                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded font-semibold transition-colors"
-                  >
-                    🤖 AI Assistant
-                  </button>
-                  <AudioGenerationButton
-                    chapterId={selectedChapter.id}
-                    chapterTitle={isEditing ? editTitle : selectedChapter.title}
-                    chapterContent={isEditing ? editContent : selectedChapter.content}
-                    existingAudioUrl={selectedChapter.audio_url}
-                    onAudioGenerated={(audioUrl) => {
-                      console.log('Audio generated:', audioUrl);
-                      setSelectedChapter(prev => prev ? { ...prev, audio_url: audioUrl } : null);
-                      fetchChapters();
-                    }}
-                  />
-                  <Link
-                    href={`/book/${bookId}/outline`}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-semibold transition-colors"
-                  >
-                    📋 Outline
-                  </Link>
-                </div>
+      {/* 3-Panel Layout */}
+      <div className="flex-1 flex overflow-hidden">
+        
+        {/* LEFT PANEL: Chapters List */}
+        <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+          <div className="p-4 border-b border-gray-200">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Chapters</h3>
+              <span className="text-sm text-gray-600">{chapters.length} total</span>
+            </div>
+            
+            <button
+              onClick={() => setShowCreateChapter(!showCreateChapter)}
+              className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold transition-colors"
+            >
+              ➕ Add Chapter
+            </button>
+          </div>
+
+          {/* Chapter Creation Form */}
+          {showCreateChapter && (
+            <div className="p-4 border-b border-gray-200 bg-gray-50">
+              <input
+                type="text"
+                placeholder="Chapter title"
+                value={newChapterTitle}
+                onChange={(e) => setNewChapterTitle(e.target.value)}
+                className="w-full p-2 bg-white text-gray-900 rounded border border-gray-300 focus:border-blue-500 focus:outline-none mb-2"
+                onKeyPress={(e) => e.key === 'Enter' && createChapter()}
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={createChapter}
+                  disabled={!newChapterTitle.trim()}
+                  className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded text-sm"
+                >
+                  Create
+                </button>
+                <button
+                  onClick={() => setShowCreateChapter(false)}
+                  className="px-3 py-1 bg-gray-400 hover:bg-gray-500 text-white rounded text-sm"
+                >
+                  Cancel
+                </button>
               </div>
             </div>
+          )}
 
-            {/* Editor Content */}
-            <div className="flex-1 flex overflow-hidden">
-              <div className="flex-1 p-6 overflow-y-auto">
-                {isEditing ? (
-                  <div className="space-y-4">
-                    <input
-                      type="text"
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      className="w-full p-3 bg-white text-gray-900 text-xl font-bold rounded border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
-                      placeholder="Chapter title"
-                    />
-                    <div className="space-y-2">
-                      <textarea
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        className={`w-full h-96 p-4 bg-white text-gray-900 rounded border leading-relaxed focus:outline-none resize-none ${
-                          isOverLimit() 
-                            ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200' 
-                            : isNearLimit()
-                            ? 'border-yellow-500 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200'
-                            : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
-                        }`}
-                        placeholder="Start writing your chapter..."
-                      />
-                      
-                      {/* Character count and warnings */}
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-4">
-                          <span className={`${isOverLimit() ? 'text-red-600 font-bold' : isNearLimit() ? 'text-yellow-600 font-medium' : 'text-gray-600'}`}>
-                            {getCharacterCount().toLocaleString()} / 7,500 characters
-                          </span>
-                          <span className="text-gray-500">
-                            ~{getWordCount()} words
-                          </span>
-                        </div>
-                        
-                        {isOverLimit() && (
-                          <span className="text-red-600 text-xs font-medium">
-                            ⚠️ Over limit - Audio generation disabled
-                          </span>
-                        )}
-                        {isNearLimit() && !isOverLimit() && (
-                          <span className="text-yellow-600 text-xs font-medium">
-                            ⚠️ Approaching character limit
-                          </span>
+          {/* Chapters List */}
+          <div className="flex-1 overflow-y-auto">
+            {chapters.length === 0 ? (
+              <div className="p-4 text-center text-gray-500">
+                <p className="mb-4">No chapters yet</p>
+                {mode === 'outline' && (
+                  <p className="text-sm">Use AI to generate an outline below</p>
+                )}
+              </div>
+            ) : (
+              chapters.map((chapter) => (
+                <div
+                  key={chapter.id}
+                  onClick={() => selectChapter(chapter)}
+                  className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
+                    selectedChapter?.id === chapter.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 truncate">{chapter.title}</h4>
+                      <p className="text-xs text-gray-500 mt-1">Chapter {chapter.chapter_number}</p>
+                      <p className="text-xs text-gray-500">{chapter.content.length} characters</p>
+                    </div>
+                    <div className="flex flex-col gap-1 ml-2">
+                      {chapter.content.trim() && (
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                          ✍️
+                        </span>
+                      )}
+                      {chapter.audio_url && (
+                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                          🎵
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* MIDDLE PANEL: Context-Aware Content */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {mode === 'outline' ? (
+            /* OUTLINE MODE */
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="max-w-4xl mx-auto space-y-6">
+                
+                {/* Book Summary */}
+                <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">📖 Book Summary</h3>
+                  <div className="prose max-w-none">
+                    {selectedChapter ? (
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900 mb-2">Chapter {selectedChapter.chapter_number}: {selectedChapter.title}</h4>
+                        {selectedChapter.content ? (
+                          <div className="text-gray-700 leading-relaxed whitespace-pre-wrap bg-gray-50 p-4 rounded border">
+                            {selectedChapter.content.substring(0, 500)}{selectedChapter.content.length > 500 ? '...' : ''}
+                          </div>
+                        ) : (
+                          <p className="text-gray-500 italic">No content yet. Switch to Write Mode to add content.</p>
                         )}
                       </div>
-                    </div>
+                    ) : (
+                      <div>
+                        <p className="text-gray-700 mb-4">{book.description || 'No description yet.'}</p>
+                        <div className="bg-blue-50 p-4 rounded border border-blue-200">
+                          <h4 className="font-semibold text-blue-900 mb-2">📊 Book Stats</h4>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-blue-700">Total Chapters:</span>
+                              <span className="font-medium ml-2">{chapters.length}</span>
+                            </div>
+                            <div>
+                              <span className="text-blue-700">Total Words:</span>
+                              <span className="font-medium ml-2">
+                                {chapters.reduce((total, ch) => total + ch.content.trim().split(/\s+/).filter(word => word.length > 0).length, 0)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* AI Outline Generation */}
+                {chapters.length === 0 && (
+                  <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">🤖 AI Outline Generation</h3>
                     <div className="space-y-4">
+                      <textarea
+                        value={aiPrompt}
+                        onChange={(e) => setAiPrompt(e.target.value)}
+                        placeholder={`Describe what you want in your book outline... (Leave empty for automatic generation based on "${book.title}")`}
+                        className="w-full h-32 p-4 bg-gray-50 text-gray-900 rounded border border-gray-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none resize-none"
+                      />
+                      <button
+                        onClick={generateAIOutline}
+                        disabled={isGeneratingOutline}
+                        className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded-lg font-semibold transition-colors"
+                      >
+                        {isGeneratingOutline ? '🤖 Generating...' : '✨ Generate AI Outline'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* WRITE MODE */
+            selectedChapter ? (
+              <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Chapter Header */}
+                <div className="p-6 border-b border-gray-200 bg-white flex-shrink-0">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">{selectedChapter.title}</h2>
+                      <p className="text-gray-600">Chapter {selectedChapter.chapter_number}</p>
+                    </div>
+                    <div className="flex gap-3">
+                      <AudioGenerationButton
+                        chapterId={selectedChapter.id}
+                        chapterTitle={isEditing ? editTitle : selectedChapter.title}
+                        chapterContent={isEditing ? editContent : selectedChapter.content}
+                        existingAudioUrl={selectedChapter.audio_url}
+                        onAudioGenerated={(audioUrl) => {
+                          setSelectedChapter(prev => prev ? { ...prev, audio_url: audioUrl } : null);
+                          fetchChapters();
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Editor Content */}
+                <div className="flex-1 p-6 overflow-y-auto">
+                  {isEditing ? (
+                    <div className="space-y-4">
+                      <input
+                        type="text"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="w-full p-3 bg-white text-gray-900 text-xl font-bold rounded border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+                        placeholder="Chapter title"
+                      />
+                      <div className="space-y-2">
+                        <textarea
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          className={`w-full h-96 p-4 bg-white text-gray-900 rounded border leading-relaxed focus:outline-none resize-none ${
+                            isOverLimit() 
+                              ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200' 
+                              : isNearLimit()
+                              ? 'border-yellow-500 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200'
+                              : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+                          }`}
+                          placeholder="Start writing your chapter..."
+                        />
+                        
+                        {/* Character count and warnings */}
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-4">
+                            <span className={`${isOverLimit() ? 'text-red-600 font-bold' : isNearLimit() ? 'text-yellow-600 font-medium' : 'text-gray-600'}`}>
+                              {getCharacterCount().toLocaleString()} / 7,500 characters
+                            </span>
+                            <span className="text-gray-500">
+                              ~{getWordCount()} words
+                            </span>
+                          </div>
+                          
+                          {isOverLimit() && (
+                            <span className="text-red-600 text-xs font-medium">
+                              ⚠️ Over limit - Audio generation disabled
+                            </span>
+                          )}
+                          {isNearLimit() && !isOverLimit() && (
+                            <span className="text-yellow-600 text-xs font-medium">
+                              ⚠️ Approaching character limit
+                            </span>
+                          )}
+                        </div>
+                      </div>
                       <div className="flex flex-wrap gap-3">
                         <button
                           onClick={saveChapter}
@@ -523,131 +562,73 @@ export default function BookEditor() {
                         >
                           Cancel
                         </button>
-                        
-                        {/* AI Writing Assistance */}
-                        <button
-                          onClick={startWritingChapter}
-                          disabled={isWritingChapter}
-                          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded font-medium transition-colors"
-                        >
-                          {isWritingChapter ? '✍️ Writing...' : '✍️ Start Writing'}
-                        </button>
-                        <button
-                          onClick={finishChapter}
-                          disabled={isWritingChapter || !editContent.trim()}
-                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white rounded font-medium transition-colors"
-                        >
-                          {isWritingChapter ? '✍️ Writing...' : '🏁 Finish Chapter'}
-                        </button>
                       </div>
-                      
-                      {/* Audio Generation in Edit Mode */}
-                      <div className="pt-4 border-t border-gray-200">
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">Audio Generation</h4>
-                        <AudioGenerationButton
-                          chapterId={selectedChapter.id}
-                          chapterTitle={editTitle}
-                          chapterContent={editContent}
-                          existingAudioUrl={selectedChapter.audio_url}
-                          disabled={isOverLimit()}
-                          onAudioGenerated={(audioUrl) => {
-                            // Update the chapter with the new audio URL
-                            setSelectedChapter(prev => prev ? { ...prev, audio_url: audioUrl } : null);
-                          }}
-                        />
-                        {isOverLimit() && (
-                          <p className="text-red-600 text-xs mt-2">
-                            ⚠️ Chapter exceeds 7,500 character limit. Please reduce content to enable audio generation.
-                          </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="prose max-w-none">
+                        {selectedChapter.content ? (
+                          <div className="whitespace-pre-wrap text-gray-800 leading-relaxed bg-white p-6 rounded border border-gray-200 shadow-sm">
+                            {selectedChapter.content}
+                          </div>
+                        ) : (
+                          <p className="text-gray-500 italic bg-gray-50 p-6 rounded border border-gray-200">No content yet. Click &ldquo;Edit&rdquo; to start writing.</p>
                         )}
                       </div>
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          onClick={() => setIsEditing(true)}
+                          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold transition-colors"
+                        >
+                          ✏️ Edit Chapter
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="prose max-w-none">
-                      {selectedChapter.content ? (
-                        <div className="whitespace-pre-wrap text-gray-800 leading-relaxed bg-white p-6 rounded border border-gray-200 shadow-sm">
-                          {selectedChapter.content}
-                        </div>
-                      ) : (
-                        <p className="text-gray-500 italic bg-gray-50 p-6 rounded border border-gray-200">No content yet. Click &quot;Edit&quot; to start writing.</p>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-3">
-                      <button
-                        onClick={() => setIsEditing(true)}
-                        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold transition-colors"
-                      >
-                        ✏️ Edit Chapter
-                      </button>
-                      
-                      {/* Audio Generation */}
-                      <AudioGenerationButton
-                        chapterId={selectedChapter.id}
-                        chapterTitle={selectedChapter.title}
-                        chapterContent={selectedChapter.content}
-                        existingAudioUrl={selectedChapter.audio_url}
-                        onAudioGenerated={(audioUrl) => {
-                          // Update the chapter with the new audio URL
-                          setSelectedChapter(prev => prev ? { ...prev, audio_url: audioUrl } : null);
-                          fetchChapters(); // Refresh chapters to update UI
-                        }}
-                      />
-                      
-                      {/* Note: This view mode uses saved content, not edited content */}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* AI Chat Sidebar - Fixed Desktop Layout */}
-              {showAIChat && (
-                <div className="w-96 bg-white border-l border-gray-200 shadow-sm flex flex-col h-full">
-                  <div className="flex justify-between items-center p-4 border-b border-gray-200 flex-shrink-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">🤖</span>
-                      <h3 className="text-lg font-bold text-gray-900">AI Assistant</h3>
-                    </div>
-                    <button
-                      onClick={() => setShowAIChat(false)}
-                      className="text-gray-400 hover:text-gray-600 p-1"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div className="flex-1 overflow-hidden">
-                    <AIAssistantChat
-                      book={book}
-                      currentChapter={selectedChapter}
-                      onContentSuggestion={(content) => {
-                        // User can insert AI suggestions into their chapter
-                        if (selectedChapter) {
-                          setEditContent(prev => prev + '\n\n' + content);
-                          setIsEditing(true);
-                        }
-                      }}
-                      onInsertContent={insertAIContent}
-                      className="h-full"
-                    />
-                  </div>
+                  )}
                 </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Select a Chapter</h2>
+                  <p className="text-gray-600 mb-6">Choose a chapter from the sidebar to start writing</p>
+                </div>
+              </div>
+            )
+          )}
+        </div>
+
+        {/* RIGHT PANEL: AI Assistant */}
+        <div className="w-96 bg-white border-l border-gray-200 flex flex-col">
+          <div className="p-4 border-b border-gray-200 flex-shrink-0">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-2xl">🤖</span>
+              <h3 className="text-lg font-bold text-gray-900">AI Assistant</h3>
+            </div>
+            <div className="text-sm text-gray-600">
+              {mode === 'outline' ? (
+                <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full">📋 Research Mode</span>
+              ) : (
+                <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full">✍️ Writing Mode</span>
               )}
             </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Select a Chapter</h2>
-              <p className="text-gray-600 mb-6">Choose a chapter from the sidebar to start writing</p>
-              <div className="space-y-4">
-                <div className="text-sm text-gray-500">
-                  Need an outline? <Link href={`/book/${bookId}/outline`} className="text-purple-600 hover:text-purple-800 font-medium">Create one here</Link>
-                </div>
-              </div>
-            </div>
           </div>
-        )}
+          
+          <div className="flex-1 overflow-hidden">
+            <AIAssistantChat
+              book={book}
+              currentChapter={selectedChapter || undefined}
+              mode={mode}
+              onContentSuggestion={(content) => {
+                if (selectedChapter && mode === 'write') {
+                  setEditContent(prev => prev + '\n\n' + content);
+                  setIsEditing(true);
+                }
+              }}
+              className="h-full"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Auth Modal */}
