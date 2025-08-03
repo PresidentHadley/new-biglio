@@ -638,6 +638,11 @@ export default function UnifiedBookEditor() {
                   setEditContent(prev => prev + '\n\n' + content);
                 }
               }}
+              onInsertContent={(content) => {
+                if (selectedChapter && mode === 'write') {
+                  setEditContent(prev => prev + '\n\n' + content);
+                }
+              }}
               className="h-full"
             />
           </div>
