@@ -74,6 +74,11 @@ export default function UnifiedBookEditor() {
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGeneratingOutline, setIsGeneratingOutline] = useState(false);
 
+  // Chapter Edit Modal State
+  const [editingChapter, setEditingChapter] = useState<Chapter | null>(null);
+  const [editModalTitle, setEditModalTitle] = useState('');
+  const [editModalSummary, setEditModalSummary] = useState('');
+
   const supabase = createClient();
 
   const fetchBookData = useCallback(async () => {
@@ -602,6 +607,53 @@ export default function UnifiedBookEditor() {
   const isNearLimit = () => getCharacterCount() > 6500;
   const isOverLimit = () => getCharacterCount() > 7500;
 
+  // Chapter Edit Modal Functions
+  const openEditModal = (chapter: Chapter) => {
+    setEditingChapter(chapter);
+    setEditModalTitle(chapter.title);
+    setEditModalSummary(chapter.outline_content || '');
+  };
+
+  const closeEditModal = () => {
+    setEditingChapter(null);
+    setEditModalTitle('');
+    setEditModalSummary('');
+  };
+
+  const saveChapterEdits = async () => {
+    if (!editingChapter) return;
+
+    try {
+      const { error } = await supabase
+        .from('chapters')
+        .update({
+          title: editModalTitle,
+          outline_content: editModalSummary
+        })
+        .eq('id', editingChapter.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setChapters(prev => prev.map(ch => 
+        ch.id === editingChapter.id 
+          ? { ...ch, title: editModalTitle, outline_content: editModalSummary }
+          : ch
+      ));
+
+      // Update selected chapter if it's the one being edited
+      if (selectedChapter?.id === editingChapter.id) {
+        setEditTitle(editModalTitle);
+        setEditOutlineContent(editModalSummary);
+      }
+
+      closeEditModal();
+    } catch (error) {
+      console.error('Error saving chapter edits:', error);
+      alert('Failed to save changes. Please try again.');
+    }
+  };
+
   // Loading state
   if (isLoading) {
     return (
@@ -747,17 +799,34 @@ export default function UnifiedBookEditor() {
                       <p className="text-xs text-gray-500 mt-1">Chapter {chapter.chapter_number}</p>
                       <p className="text-xs text-gray-500">{chapter.content.length} characters</p>
                     </div>
-                    <div className="flex flex-col gap-1 ml-2">
-                      {chapter.content.trim() && (
-                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                          ✍️
-                        </span>
-                      )}
-                      {chapter.audio_url && (
-                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-                          🎵
-                        </span>
-                      )}
+                    <div className="flex items-center gap-2 ml-2">
+                      {/* Edit Chapter Button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent chapter selection
+                          openEditModal(chapter);
+                        }}
+                        className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                        title="Edit chapter title and summary"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      
+                      {/* Status Icons */}
+                      <div className="flex flex-col gap-1">
+                        {chapter.content.trim() && (
+                          <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                            ✍️
+                          </span>
+                        )}
+                        {chapter.audio_url && (
+                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                            🎵
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1147,6 +1216,76 @@ The more detail you provide, the better the AI can assist with writing!"
         <div className="fixed bottom-6 right-6 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-pulse">
           <span className="text-lg">✅</span>
           <span className="font-medium">Content Saved!</span>
+        </div>
+      )}
+
+      {/* Chapter Edit Modal */}
+      {editingChapter && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Edit Chapter Summary</h3>
+              <button
+                onClick={closeEditModal}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="px-6 py-4 space-y-4 max-h-[calc(90vh-120px)] overflow-y-auto">
+              {/* Title Field */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Title
+                </label>
+                <input
+                  type="text"
+                  value={editModalTitle}
+                  onChange={(e) => setEditModalTitle(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900 bg-white"
+                  placeholder="Chapter title"
+                />
+              </div>
+
+              {/* Summary Field */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Summary
+                </label>
+                <textarea
+                  value={editModalSummary}
+                  onChange={(e) => setEditModalSummary(e.target.value)}
+                  rows={8}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none text-gray-900 bg-white"
+                  placeholder="Chapter summary, outline, or key points..."
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {editModalSummary.length} characters
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={closeEditModal}
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveChapterEdits}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors"
+              >
+                Save
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
