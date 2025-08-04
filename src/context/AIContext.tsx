@@ -331,12 +331,19 @@ export function AIProvider({ children }: { children: ReactNode }) {
       const data = await response.json();
       
       if (data.error) {
-        throw new Error(data.error);
+        const detailedError = data.details ? `${data.error}: ${data.details}` : data.error;
+        throw new Error(detailedError);
       }
 
       return data.outline || [];
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Outline generation failed';
+      let errorMessage = 'Outline generation failed';
+      
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      
+      console.error('AI Context outline error:', err);
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {

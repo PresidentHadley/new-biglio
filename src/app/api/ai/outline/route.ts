@@ -7,6 +7,15 @@ const anthropic = new Anthropic({
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if API key is configured
+    if (!process.env.BOOK_ANTHROPIC_API) {
+      console.error('BOOK_ANTHROPIC_API environment variable is not set');
+      return NextResponse.json(
+        { error: 'AI service not configured', details: 'Missing API key configuration' },
+        { status: 500 }
+      );
+    }
+    
     const { 
       title, 
       description, 
@@ -22,6 +31,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    
+    console.log('Generating outline for:', { title, description, genre, targetAudience, chapterCount });
     
     // Build outline generation prompt
     const systemPrompt = `You are an expert book outline creator specializing in audiobooks. Create detailed, engaging chapter outlines that work well for audio consumption.
@@ -97,10 +108,31 @@ Please create an engaging, well-structured outline that will captivate audio lis
   } catch (error) {
     console.error('AI outline error:', error);
     
+    // More detailed error information
+    let errorMessage = 'AI outline generation failed';
+    let errorDetails = 'Unknown error';
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      errorDetails = error.stack || error.message;
+    }
+    
+    // Check for common issues
+    if (errorMessage.includes('API key')) {
+      errorDetails = 'Invalid or missing Anthropic API key';
+    } else if (errorMessage.includes('rate limit')) {
+      errorDetails = 'Rate limit exceeded - please try again in a moment';
+    } else if (errorMessage.includes('timeout')) {
+      errorDetails = 'Request timed out - please try again';
+    }
+    
+    console.error('Detailed error:', { errorMessage, errorDetails, originalError: error });
+    
     return NextResponse.json(
       { 
-        error: 'AI outline generation failed',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        error: errorMessage,
+        details: errorDetails,
+        timestamp: new Date().toISOString()
       },
       { status: 500 }
     );

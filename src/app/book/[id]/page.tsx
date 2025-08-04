@@ -115,7 +115,7 @@ export default function UnifiedBookEditor() {
       const chaptersData = (data as Chapter[]) || [];
       setChapters(chaptersData);
       
-      // Auto-select first chapter if none selected
+      // Auto-select first chapter if none selected and chapters exist
       if (chaptersData.length > 0 && !selectedChapter) {
         const firstChapter = chaptersData[0];
         setSelectedChapter(firstChapter);
@@ -123,12 +123,14 @@ export default function UnifiedBookEditor() {
         setEditContent(firstChapter.content || '');
         setEditOutlineContent(firstChapter.outline_content || '');
       }
+      
+      console.log('Fetched chapters:', chaptersData.length, 'chapters');
     } catch (error) {
       console.error('Error fetching chapters:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [supabase, bookId, selectedChapter]);
+  }, [supabase, bookId]);
 
   // Select a chapter and load its content into edit state
   const selectChapter = useCallback((chapter: Chapter) => {
@@ -270,9 +272,20 @@ export default function UnifiedBookEditor() {
     if (!newChapterTitle.trim() || !book) return;
 
     try {
-      const nextChapterNumber = Math.max(...chapters.map(c => c.chapter_number), 0) + 1;
+      // Calculate next chapter number more safely
+      const existingNumbers = chapters.map(c => c.chapter_number).filter(n => typeof n === 'number');
+      const nextChapterNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
       
-      const { error } = await supabase
+      console.log('Creating chapter:', {
+        title: newChapterTitle,
+        biglio_id: bookId,
+        chapter_number: nextChapterNumber,
+        existing_chapters: chapters.length,
+        existing_numbers: existingNumbers,
+        chapters_data: chapters.map(c => ({ id: c.id, title: c.title, number: c.chapter_number }))
+      });
+      
+      const { data, error } = await supabase
         .from('chapters')
         .insert({
           biglio_id: bookId,
@@ -283,22 +296,40 @@ export default function UnifiedBookEditor() {
           chapter_number: nextChapterNumber,
           is_published: false,
           duration_seconds: 0
-        });
+        })
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error creating chapter:', error);
+        throw error;
+      }
 
-      // Update total chapters count
-      await supabase
+      console.log('Chapter created successfully:', data);
+
+      // Update total chapters count with actual count
+      const newTotalChapters = chapters.length + 1;
+      const { error: updateError } = await supabase
         .from('biglios')
-        .update({ total_chapters: chapters.length + 1 })
+        .update({ total_chapters: newTotalChapters })
         .eq('id', bookId);
+
+      if (updateError) {
+        console.error('Error updating total chapters:', updateError);
+      }
 
       setNewChapterTitle('');
       setShowCreateChapter(false);
-      fetchChapters();
-      fetchBookData();
+      
+      // Refresh data to get the new chapter - do this sequentially to ensure proper state updates
+      console.log('Refreshing chapters after creation...');
+      await fetchChapters();
+      console.log('Refreshing book data after creation...');
+      await fetchBookData();
+      
+      console.log('Chapter creation completed - new chapter count should be:', chapters.length + 1);
     } catch (error) {
       console.error('Error creating chapter:', error);
+      alert(`Failed to create chapter: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -372,6 +403,8 @@ export default function UnifiedBookEditor() {
       }
     } catch (error) {
       console.error('Error generating outline:', error);
+      // Show user-friendly error
+      alert(`⚠️ Outline generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsGeneratingOutline(false);
     }
