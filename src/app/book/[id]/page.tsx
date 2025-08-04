@@ -272,17 +272,31 @@ export default function UnifiedBookEditor() {
     if (!newChapterTitle.trim() || !book) return;
 
     try {
-      // Calculate next chapter number more safely
-      const existingNumbers = chapters.map(c => c.chapter_number).filter(n => typeof n === 'number');
+      // Get fresh chapters directly from database to avoid state sync issues
+      console.log('Fetching fresh chapters from database before creation...');
+      const { data: freshChapters, error: fetchError } = await supabase
+        .from('chapters')
+        .select('chapter_number')
+        .eq('biglio_id', bookId)
+        .order('chapter_number', { ascending: true });
+      
+      if (fetchError) {
+        console.error('Error fetching existing chapters:', fetchError);
+        throw fetchError;
+      }
+      
+      // Calculate next chapter number using fresh database data
+      const existingNumbers = (freshChapters || []).map(c => c.chapter_number).filter(n => typeof n === 'number');
       const nextChapterNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
       
       console.log('Creating chapter:', {
         title: newChapterTitle,
         biglio_id: bookId,
         chapter_number: nextChapterNumber,
-        existing_chapters: chapters.length,
+        fresh_chapters_count: (freshChapters || []).length,
         existing_numbers: existingNumbers,
-        chapters_data: chapters.map(c => ({ id: c.id, title: c.title, number: c.chapter_number }))
+        fresh_chapters_data: (freshChapters || []).map(c => ({ number: c.chapter_number })),
+        state_chapters_count: chapters.length
       });
       
       const { data, error } = await supabase
@@ -300,14 +314,20 @@ export default function UnifiedBookEditor() {
         .select();
 
       if (error) {
-        console.error('Database error creating chapter:', error);
+        console.error('Database error creating chapter:', {
+          error,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
         throw error;
       }
 
       console.log('Chapter created successfully:', data);
 
-      // Update total chapters count with actual count
-      const newTotalChapters = chapters.length + 1;
+      // Update total chapters count with actual count from fresh data
+      const newTotalChapters = (freshChapters || []).length + 1;
       const { error: updateError } = await supabase
         .from('biglios')
         .update({ total_chapters: newTotalChapters })
@@ -326,10 +346,30 @@ export default function UnifiedBookEditor() {
       console.log('Refreshing book data after creation...');
       await fetchBookData();
       
-      console.log('Chapter creation completed - new chapter count should be:', chapters.length + 1);
+      console.log('Chapter creation completed - new chapter count should be:', newTotalChapters);
     } catch (error) {
       console.error('Error creating chapter:', error);
-      alert(`Failed to create chapter: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Better error message handling
+      let errorMessage = 'Unknown error';
+      if (error && typeof error === 'object') {
+        if ('message' in error) {
+          errorMessage = error.message;
+        } else if ('code' in error) {
+          errorMessage = `Database error: ${error.code}`;
+        } else {
+          errorMessage = JSON.stringify(error, null, 2);
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      // Check for specific constraint violations
+      if (errorMessage.includes('duplicate key') || errorMessage.includes('unique constraint')) {
+        errorMessage = 'A chapter with this number already exists. This might be due to a syncing issue - please refresh the page and try again.';
+      }
+      
+      alert(`Failed to create chapter: ${errorMessage}`);
     }
   };
 
