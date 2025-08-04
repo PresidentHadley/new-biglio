@@ -525,6 +525,7 @@ export default function UnifiedBookEditor() {
 
     try {
       setIsGeneratingOutline(true);
+      console.log('🤖 Starting AI outline generation...');
       
       const result = await generateOutline(
         book.title,
@@ -537,11 +538,20 @@ export default function UnifiedBookEditor() {
         }
       );
 
+      console.log('🎯 AI returned outline result:', {
+        resultLength: result?.length || 0,
+        chapters: result?.map((ch, i) => ({ index: i + 1, title: ch.title })) || []
+      });
+
       if (result && result.length > 0) {
+        console.log(`📚 Creating ${result.length} chapters in database...`);
+        
         // Create chapters from AI outline
         for (let i = 0; i < result.length; i++) {
           const chapter = result[i];
-          await supabase
+          console.log(`📝 Creating chapter ${i + 1}: "${chapter.title}"`);
+          
+          const insertResult = await supabase
             .from('chapters')
             .insert({
               biglio_id: bookId,
@@ -553,8 +563,16 @@ export default function UnifiedBookEditor() {
               is_published: false,
               duration_seconds: 0
             });
+            
+          if (insertResult.error) {
+            console.error(`❌ Error creating chapter ${i + 1}:`, insertResult.error);
+          } else {
+            console.log(`✅ Successfully created chapter ${i + 1}`);
+          }
         }
 
+        console.log('📊 Updating book total chapters to:', result.length);
+        
         // Update book's total chapters
         await supabase
           .from('biglios')
@@ -562,11 +580,16 @@ export default function UnifiedBookEditor() {
           .eq('id', bookId);
 
         setAiPrompt('');
-        fetchChapters();
-        fetchBookData();
+        await fetchChapters();
+        await fetchBookData();
+        
+        console.log('🎉 AI outline generation completed successfully!');
+      } else {
+        console.warn('⚠️ AI returned empty or invalid result:', result);
+        alert('AI outline generation returned no chapters. Please try again.');
       }
     } catch (error) {
-      console.error('Error generating outline:', error);
+      console.error('❌ Error generating outline:', error);
       // Show user-friendly error
       alert(`⚠️ Outline generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
@@ -843,21 +866,51 @@ export default function UnifiedBookEditor() {
               {chapters.length === 0 && (
                   <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
                     <h3 className="text-xl font-bold text-gray-900 mb-4">🤖 AI Outline Generation</h3>
-                    <div className="space-y-4">
-                      <textarea
-                        value={aiPrompt}
-                        onChange={(e) => setAiPrompt(e.target.value)}
-                        placeholder={`Describe what you want in your book outline... (Leave empty for automatic generation based on "${book.title}")`}
-                        className="w-full h-32 p-4 bg-gray-50 text-gray-900 rounded border border-gray-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none resize-none"
-                      />
-                      <button
-                        onClick={generateAIOutline}
-                        disabled={isGeneratingOutline}
-                        className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded-lg font-semibold transition-colors"
-                      >
-                        {isGeneratingOutline ? '🤖 Generating...' : '✨ Generate AI Outline'}
-                      </button>
-                    </div>
+                    
+                    {isGeneratingOutline ? (
+                      // Enhanced Loading State
+                      <div className="space-y-6">
+                        <div className="text-center">
+                          <div className="inline-flex items-center justify-center w-16 h-16 mb-4 bg-purple-100 rounded-full">
+                            <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                          </div>
+                          <h4 className="text-lg font-semibold text-purple-900 mb-2">Generating Your Book Outline</h4>
+                          <p className="text-purple-700 mb-4">AI is creating 10 chapters for your book...</p>
+                          <div className="w-full bg-purple-200 rounded-full h-2">
+                            <div className="bg-purple-600 h-2 rounded-full animate-pulse" style={{width: '60%'}}></div>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"></div>
+                            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                            <span className="text-purple-800 font-medium ml-2">Analyzing your book concept</span>
+                          </div>
+                          <p className="text-sm text-purple-700">
+                            Creating chapter titles, summaries, and key points that align with your book&apos;s theme and target audience.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      // Regular Generation Form
+                      <div className="space-y-4">
+                        <textarea
+                          value={aiPrompt}
+                          onChange={(e) => setAiPrompt(e.target.value)}
+                          placeholder={`Describe what you want in your book outline... (Leave empty for automatic generation based on "${book.title}")`}
+                          className="w-full h-32 p-4 bg-gray-50 text-gray-900 rounded border border-gray-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none resize-none"
+                        />
+                        <button
+                          onClick={generateAIOutline}
+                          className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                        >
+                          <span>✨</span>
+                          <span>Generate AI Outline (10 Chapters)</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
