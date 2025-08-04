@@ -268,35 +268,64 @@ export default function UnifiedBookEditor() {
     }
   }, [bookId, user, authLoading, fetchBookData, fetchChapters]);
 
+  // Debug function to check database state
+  const debugDatabaseState = async () => {
+    console.log('🐛 DEBUG: Checking current database state...');
+    const { data: allChapters } = await supabase
+      .from('chapters')
+      .select('*')
+      .eq('biglio_id', bookId)
+      .order('chapter_number', { ascending: true });
+    
+    console.log('🐛 DEBUG: All chapters in database:', allChapters);
+    console.log('🐛 DEBUG: React state chapters:', chapters);
+    console.log('🐛 DEBUG: Mismatch?', (allChapters || []).length !== chapters.length);
+  };
+
   const createChapter = async () => {
     if (!newChapterTitle.trim() || !book) return;
 
     try {
+      // Debug current state before creation
+      await debugDatabaseState();
       // Get fresh chapters directly from database to avoid state sync issues
-      console.log('Fetching fresh chapters from database before creation...');
+      console.log('🔍 Fetching fresh chapters from database before creation...');
       const { data: freshChapters, error: fetchError } = await supabase
         .from('chapters')
-        .select('chapter_number')
+        .select('id, title, chapter_number')
         .eq('biglio_id', bookId)
         .order('chapter_number', { ascending: true });
       
       if (fetchError) {
-        console.error('Error fetching existing chapters:', fetchError);
+        console.error('❌ Error fetching existing chapters:', fetchError);
         throw fetchError;
       }
+      
+      console.log('📊 Fresh database query results:', {
+        total_chapters: (freshChapters || []).length,
+        chapters: (freshChapters || []).map(c => ({ 
+          id: c.id, 
+          title: c.title, 
+          number: c.chapter_number 
+        }))
+      });
       
       // Calculate next chapter number using fresh database data
       const existingNumbers = (freshChapters || []).map(c => c.chapter_number).filter(n => typeof n === 'number');
       const nextChapterNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
       
-      console.log('Creating chapter:', {
+      console.log('🧮 Chapter number calculation:', {
+        existing_numbers: existingNumbers,
+        calculated_next_number: nextChapterNumber,
+        max_existing: existingNumbers.length > 0 ? Math.max(...existingNumbers) : 'none'
+      });
+      
+      console.log('📝 About to create chapter:', {
         title: newChapterTitle,
         biglio_id: bookId,
         chapter_number: nextChapterNumber,
-        fresh_chapters_count: (freshChapters || []).length,
-        existing_numbers: existingNumbers,
-        fresh_chapters_data: (freshChapters || []).map(c => ({ number: c.chapter_number })),
-        state_chapters_count: chapters.length
+        fresh_db_count: (freshChapters || []).length,
+        react_state_count: chapters.length
       });
       
       const { data, error } = await supabase
@@ -314,7 +343,20 @@ export default function UnifiedBookEditor() {
         .select();
 
       if (error) {
-        console.error('Database error creating chapter:', error);
+        console.error('❌ Database error creating chapter:', error);
+        
+        // If it's a unique constraint violation, let's see what's actually in the database
+        if (error.message && error.message.includes('duplicate') || error.code === '23505') {
+          console.log('🔍 Unique constraint violation detected, querying current database state...');
+          const { data: debugChapters } = await supabase
+            .from('chapters')
+            .select('id, title, chapter_number, created_at')
+            .eq('biglio_id', bookId)
+            .order('chapter_number', { ascending: true });
+          
+          console.log('📊 Current chapters in database after error:', debugChapters);
+        }
+        
         throw error;
       }
 
@@ -520,7 +562,20 @@ export default function UnifiedBookEditor() {
           <div className="p-4 border-b border-gray-200">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold text-gray-900">Chapters</h3>
-              <span className="text-sm text-gray-600">{chapters.length} total</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">{chapters.length} total</span>
+                <button
+                  onClick={() => {
+                    console.log('🔄 Force refreshing chapters...');
+                    fetchChapters();
+                    debugDatabaseState();
+                  }}
+                  className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded"
+                  title="Force refresh chapter list & debug database state"
+                >
+                  🔄
+                </button>
+              </div>
             </div>
             
             <button
