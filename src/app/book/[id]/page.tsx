@@ -280,6 +280,20 @@ export default function UnifiedBookEditor() {
     console.log('🐛 DEBUG: All chapters in database:', allChapters);
     console.log('🐛 DEBUG: React state chapters:', chapters);
     console.log('🐛 DEBUG: Mismatch?', (allChapters || []).length !== chapters.length);
+    
+    // Check if there's an order_index field that's causing issues
+    if (allChapters && allChapters.length > 0) {
+      console.log('🔍 DEBUG: First chapter structure:', Object.keys(allChapters[0]));
+      allChapters.forEach((ch, index) => {
+        console.log(`📋 Chapter ${index + 1}:`, {
+          id: ch.id,
+          title: ch.title,
+          chapter_number: ch.chapter_number,
+          order_index: ch.order_index, // Check if this field exists
+          created_at: ch.created_at
+        });
+      });
+    }
   };
 
   const createChapter = async () => {
@@ -328,18 +342,29 @@ export default function UnifiedBookEditor() {
         react_state_count: chapters.length
       });
       
+      // Try creating with a unique timestamp or order_index to avoid conflicts
+      const insertData: any = {
+        biglio_id: bookId,
+        title: newChapterTitle,
+        content: '',
+        outline_content: '',
+        summary: null,
+        chapter_number: nextChapterNumber,
+        is_published: false,
+        duration_seconds: 0
+      };
+      
+      // Add order_index if the constraint requires it
+      // This is a guess based on the error message
+      if ((freshChapters || []).length > 0) {
+        insertData.order_index = nextChapterNumber;
+      }
+      
+      console.log('📝 Final insert data:', insertData);
+      
       const { data, error } = await supabase
         .from('chapters')
-        .insert({
-          biglio_id: bookId,
-          title: newChapterTitle,
-          content: '',
-          outline_content: '',
-          summary: null,
-          chapter_number: nextChapterNumber,
-          is_published: false,
-          duration_seconds: 0
-        })
+        .insert(insertData)
         .select();
 
       if (error) {
@@ -350,11 +375,50 @@ export default function UnifiedBookEditor() {
           console.log('🔍 Unique constraint violation detected, querying current database state...');
           const { data: debugChapters } = await supabase
             .from('chapters')
-            .select('id, title, chapter_number, created_at')
+            .select('*') // Select all fields to see what exists
             .eq('biglio_id', bookId)
             .order('chapter_number', { ascending: true });
           
           console.log('📊 Current chapters in database after error:', debugChapters);
+          console.log('🔍 Constraint name from error:', error.message);
+          
+          // Try alternative approach - create without order_index
+          if (error.message.includes('order_index')) {
+            console.log('🔄 Retrying without order_index field...');
+            const fallbackData = {
+              biglio_id: bookId,
+              title: newChapterTitle,
+              content: '',
+              outline_content: '',
+              summary: null,
+              chapter_number: nextChapterNumber,
+              is_published: false,
+              duration_seconds: 0
+            };
+            
+            const { data: retryData, error: retryError } = await supabase
+              .from('chapters')
+              .insert(fallbackData)
+              .select();
+              
+            if (!retryError) {
+              console.log('✅ Retry successful:', retryData);
+              // Continue with success flow
+              const newTotalChapters = (freshChapters || []).length + 1;
+              await supabase
+                .from('biglios')
+                .update({ total_chapters: newTotalChapters })
+                .eq('id', bookId);
+              
+              setNewChapterTitle('');
+              setShowCreateChapter(false);
+              await fetchChapters();
+              await fetchBookData();
+              return; // Exit successfully
+            } else {
+              console.error('❌ Retry also failed:', retryError);
+            }
+          }
         }
         
         throw error;
