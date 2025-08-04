@@ -317,7 +317,10 @@ export function AIProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({
           title,
           description,
-          options
+          genre: options?.genre,
+          targetAudience: options?.targetAudience,
+          chapterCount: options?.chapterCount || 10,
+          existingOutline: options?.existingOutline
         }),
       });
 

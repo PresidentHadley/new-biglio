@@ -325,14 +325,14 @@ export default function UnifiedBookEditor() {
     try {
       setIsGeneratingOutline(true);
       
-      const promptText = aiPrompt || `Generate a comprehensive outline for a book titled "${book.title}"${book.description ? ` with the description: ${book.description}` : ''}. Create 8-12 chapters with engaging titles and detailed descriptions.`;
-
       const result = await generateOutline(
         book.title,
         book.description || '',
         {
-          additionalPrompt: promptText,
-          chapterCount: 10
+          genre: book.genre,
+          targetAudience: book.target_audience?.join(', '),
+          chapterCount: 10,
+          existingOutline: chapters.length > 0 ? chapters.map(ch => ({ title: ch.title, summary: ch.outline_content })) : undefined
         }
       );
 
@@ -345,7 +345,9 @@ export default function UnifiedBookEditor() {
             .insert({
               biglio_id: bookId,
               title: chapter.title,
-              content: `# ${chapter.title}\n\n${chapter.summary || ''}\n\n[Start writing your chapter content here...]`,
+              content: '', // Start with empty content for writing mode
+              outline_content: `${chapter.summary || ''}\n\nKey Points:\n${chapter.keyPoints ? chapter.keyPoints.map(point => `• ${point}`).join('\n') : ''}`,
+              summary: null,
               chapter_number: i + 1,
               is_published: false,
               duration_seconds: 0
