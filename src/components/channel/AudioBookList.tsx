@@ -236,10 +236,20 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
                   
                   {/* Play Button Overlay */}
                   <button
-                    onClick={() => handlePlayBook(book.id)}
+                    onClick={() => {
+                      // Play first chapter of this book
+                      const chapters = bookChapters[book.id];
+                      const firstChapterWithAudio = chapters?.find(ch => ch.audio_url);
+                      if (firstChapterWithAudio) {
+                        handlePlayChapter(firstChapterWithAudio);
+                      } else {
+                        // If no chapters loaded yet, expand the book first
+                        toggleBookExpansion(book.id);
+                      }
+                    }}
                     className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity rounded-lg"
                   >
-                    {playingBook === book.id ? (
+                    {bookChapters[book.id]?.some(ch => playingChapter === ch.id) ? (
                       <FaPause className="text-white text-xl" />
                     ) : (
                       <FaPlay className="text-white text-xl ml-1" />
