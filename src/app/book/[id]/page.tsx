@@ -62,6 +62,8 @@ export default function UnifiedBookEditor() {
   const [editContent, setEditContent] = useState('');
   const [editOutlineContent, setEditOutlineContent] = useState('');
   const [savingChapter, setSavingChapter] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [showSavedIndicator, setShowSavedIndicator] = useState(false);
 
   // Chapter creation
   const [showCreateChapter, setShowCreateChapter] = useState(false);
@@ -183,6 +185,11 @@ export default function UnifiedBookEditor() {
           ch.id === chapterId ? { ...ch, summary } : ch
         ));
       }
+
+      // Show save success feedback
+      setLastSaved(new Date());
+      setShowSavedIndicator(true);
+      setTimeout(() => setShowSavedIndicator(false), 3000);
     } catch (error) {
       console.error('Error saving chapter content:', error);
     } finally {
@@ -204,6 +211,11 @@ export default function UnifiedBookEditor() {
         .eq('id', chapterId);
 
       if (error) throw error;
+
+      // Show save success feedback
+      setLastSaved(new Date());
+      setShowSavedIndicator(true);
+      setTimeout(() => setShowSavedIndicator(false), 3000);
     } catch (error) {
       console.error('Error saving chapter outline:', error);
     } finally {
@@ -641,6 +653,12 @@ export default function UnifiedBookEditor() {
                         />
                         <p className="text-gray-600">Chapter {selectedChapter.chapter_number} - Outline Mode
                           {savingChapter && <span className="text-purple-600 ml-2">💾 Saving...</span>}
+                          {showSavedIndicator && <span className="text-green-600 ml-2">✅ Saved!</span>}
+                          {lastSaved && !savingChapter && !showSavedIndicator && (
+                            <span className="text-gray-400 ml-2 text-sm">
+                              Last saved: {lastSaved.toLocaleTimeString()}
+                            </span>
+                          )}
                         </p>
                       </div>
                     </div>
@@ -719,6 +737,12 @@ The more detail you provide, the better the AI can assist with writing!"
                       />
                       <p className="text-gray-600">Chapter {selectedChapter.chapter_number} 
                         {savingChapter && <span className="text-blue-600 ml-2">💾 Saving...</span>}
+                        {showSavedIndicator && <span className="text-green-600 ml-2">✅ Saved!</span>}
+                        {lastSaved && !savingChapter && !showSavedIndicator && (
+                          <span className="text-gray-400 ml-2 text-sm">
+                            Last saved: {lastSaved.toLocaleTimeString()}
+                          </span>
+                        )}
                       </p>
                     </div>
                     <div className="flex gap-3">
@@ -831,6 +855,14 @@ The more detail you provide, the better the AI can assist with writing!"
           </div>
         </div>
       </div>
+
+      {/* Floating Save Indicator */}
+      {showSavedIndicator && (
+        <div className="fixed bottom-6 right-6 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-pulse">
+          <span className="text-lg">✅</span>
+          <span className="font-medium">Content Saved!</span>
+        </div>
+      )}
 
       {/* Auth Modal */}
       <AuthModal

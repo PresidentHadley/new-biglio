@@ -309,6 +309,7 @@ export function AudioGenerationButton({
               onClick={generateAudio}
               disabled={disabled || isGenerating}
               className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded-lg font-semibold transition-colors"
+              title="Generate new audio with updated content"
             >
               {isGenerating ? (
                 <>
@@ -318,7 +319,7 @@ export function AudioGenerationButton({
               ) : (
                 <>
                   <FaVolumeUp size={16} />
-                  Regenerate
+                  🔄 Regenerate
                 </>
               )}
             </button>
@@ -345,6 +346,10 @@ export function AudioGenerationButton({
       {audioUrl && (
         <div className="text-sm text-green-600 bg-green-50 p-3 rounded-lg border border-green-200">
           ✅ Audio available for &quot;{chapterTitle}&quot;
+          <br />
+          <span className="text-xs text-gray-600 mt-1 inline-block">
+            💡 Tip: Click &quot;Regenerate&quot; to create new audio after editing your text
+          </span>
         </div>
       )}
 
