@@ -117,7 +117,7 @@ export function BookCreationModal({ isOpen, onClose, onSubmit, isCreating = fals
               type="text"
               value={formData.title}
               onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 text-gray-900 bg-white"
               placeholder="Enter your book title"
             />
             {errors.title && <p className="text-red-500 text-sm mt-1">{Array.isArray(errors.title) ? errors.title[0] : errors.title}</p>}
@@ -131,7 +131,7 @@ export function BookCreationModal({ isOpen, onClose, onSubmit, isCreating = fals
             <select
               value={formData.book_type}
               onChange={(e) => setFormData(prev => ({ ...prev, book_type: e.target.value as 'fiction' | 'non-fiction' }))}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 text-gray-900 bg-white"
             >
               <option value="">Select type...</option>
               <option value="fiction">Fiction</option>
@@ -148,7 +148,7 @@ export function BookCreationModal({ isOpen, onClose, onSubmit, isCreating = fals
             <select
               value={formData.genre}
               onChange={(e) => setFormData(prev => ({ ...prev, genre: e.target.value }))}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 text-gray-900 bg-white"
             >
               <option value="">Select a genre</option>
               {GENRES.map(genre => (
@@ -188,7 +188,7 @@ export function BookCreationModal({ isOpen, onClose, onSubmit, isCreating = fals
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               rows={4}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 resize-none"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 resize-none text-gray-900 bg-white"
               placeholder="Brief description of your book (optional)"
             />
           </div>
