@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
 import { ChannelHeader } from '@/components/channel/ChannelHeader';
 import { AudioBookList } from '@/components/channel/AudioBookList';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { BookCreationModal, BookFormData } from '@/components/BookCreationModal';
 
 interface Channel {
   id: string;
@@ -49,13 +51,19 @@ interface SupabaseBook {
   total_duration_seconds: number;
 }
 
+
+
 export default function ChannelPage() {
   const { username } = useParams();
+  const router = useRouter();
+  const { user } = useAuth();
   const [channel, setChannel] = useState<Channel | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   const supabase = createClient();
 
@@ -128,6 +136,52 @@ export default function ChannelPage() {
     }
   }, [username, supabase]);
 
+  const handleCreateBook = async (bookData: BookFormData) => {
+    if (!channel?.id || !user) return;
+    
+    try {
+      setIsCreating(true);
+
+      const { data, error } = await supabase
+        .from('biglios')
+        .insert({
+          title: bookData.title,
+          description: bookData.description || '',
+          book_type: bookData.book_type,
+          genre: bookData.genre,
+          target_audience: bookData.target_audience,
+          reading_level: bookData.reading_level,
+          channel_id: channel.id,
+          total_chapters: 0,
+          is_published: false
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Success! Close modal and redirect to outline editor
+      setShowCreateModal(false);
+      
+      // Redirect to the new book's outline editor
+      if (data) {
+        router.push(`/book/${data.id}?mode=outline`);
+      }
+      
+    } catch (error) {
+      console.error('Error creating biglio:', error);
+      throw error; // Re-throw so the modal can handle it
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleChannelUpdate = (updatedChannel: Partial<Channel>) => {
+    if (channel) {
+      setChannel({ ...channel, ...updatedChannel });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center pt-16">
@@ -165,6 +219,8 @@ export default function ChannelPage() {
         channel={channel}
         isOwner={isOwner}
         bookCount={books.length}
+        onChannelUpdate={handleChannelUpdate}
+        onCreateBook={() => setShowCreateModal(true)}
       />
 
       {/* Books/Audio Content */}
@@ -174,6 +230,14 @@ export default function ChannelPage() {
           isOwner={isOwner}
         />
       </div>
+
+      {/* Book Creation Modal */}
+      <BookCreationModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSubmit={handleCreateBook}
+        isCreating={isCreating}
+      />
     </div>
   );
 }

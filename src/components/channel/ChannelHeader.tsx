@@ -50,9 +50,10 @@ interface ChannelHeaderProps {
   isOwner: boolean;
   bookCount: number;
   onChannelUpdate?: (updatedChannel: Partial<Channel>) => void;
+  onCreateBook?: () => void;
 }
 
-export function ChannelHeader({ channel, isOwner, bookCount, onChannelUpdate }: ChannelHeaderProps) {
+export function ChannelHeader({ channel, isOwner, bookCount, onChannelUpdate, onCreateBook }: ChannelHeaderProps) {
   const { user } = useAuth();
   const router = useRouter();
   const supabase = createClient();
@@ -455,7 +456,7 @@ export function ChannelHeader({ channel, isOwner, bookCount, onChannelUpdate }: 
                 
                 {isOwner && (
                   <button 
-                    onClick={() => router.push('/dashboard')}
+                    onClick={onCreateBook || (() => router.push('/dashboard'))}
                     className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors"
                   >
                     <FaPlus className="text-sm" />

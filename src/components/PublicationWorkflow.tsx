@@ -55,7 +55,7 @@ export function PublicationWorkflow({ bookId, currentStatus, onStatusChange }: P
       const { error } = await supabase
         .from('biglios')
         .update({
-          publication_status: 'published',
+          is_published: true,
           published_at: new Date().toISOString()
         })
         .eq('id', bookId);
