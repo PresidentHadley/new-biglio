@@ -52,9 +52,15 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const supabase = createClient();
 
+  // Debug logging
+  console.log('📚 AudioBookList received books:', books);
+  console.log('👤 isOwner:', isOwner);
+
   // Fetch chapters for a book
   const fetchChapters = useCallback(async (bookId: string) => {
     if (bookChapters[bookId] || loadingChapters[bookId]) return;
+    
+    console.log('🔍 Fetching chapters for book:', bookId);
     
     try {
       setLoadingChapters(prev => ({ ...prev, [bookId]: true }));
@@ -63,17 +69,22 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
         .from('chapters')
         .select('id, title, content, chapter_number, audio_url, duration_seconds, is_published')
         .eq('biglio_id', bookId)
-        .eq('is_published', true)
+        // .eq('is_published', true) // Temporarily disabled to debug
         .order('chapter_number', { ascending: true });
 
+      console.log('📖 Chapters query result:', { data, error });
+
       if (error) throw error;
+
+      const chaptersWithAudio = (data as Chapter[])?.filter(ch => ch.audio_url);
+      console.log('🎵 Chapters with audio:', chaptersWithAudio);
 
       setBookChapters(prev => ({
         ...prev,
         [bookId]: (data as Chapter[]) || []
       }));
     } catch (error) {
-      console.error('Error fetching chapters:', error);
+      console.error('❌ Error fetching chapters:', error);
     } finally {
       setLoadingChapters(prev => ({ ...prev, [bookId]: false }));
     }
@@ -82,6 +93,8 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
   const toggleBookExpansion = (bookId: string) => {
     const willExpand = !expandedBooks[bookId];
     
+    console.log('📂 Toggling book expansion:', { bookId, willExpand });
+    
     setExpandedBooks(prev => ({
       ...prev,
       [bookId]: willExpand
@@ -89,6 +102,7 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
 
     // Fetch chapters when expanding
     if (willExpand) {
+      console.log('🚀 Will fetch chapters for:', bookId);
       fetchChapters(bookId);
     }
   };
