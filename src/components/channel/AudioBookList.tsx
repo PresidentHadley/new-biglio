@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
+import { createClient } from '@/lib/supabase';
 import { 
   FaPlay, 
   FaPause, 
@@ -9,7 +10,8 @@ import {
   FaChevronRight, 
   FaBook,
   FaClock,
-  FaHeadphones
+  FaHeadphones,
+  FaEllipsisV
 } from 'react-icons/fa';
 
 interface Book {
@@ -25,6 +27,16 @@ interface Book {
   is_published: boolean;
 }
 
+interface Chapter {
+  id: string;
+  title: string;
+  content: string;
+  chapter_number: number;
+  audio_url?: string;
+  duration_seconds: number;
+  is_published: boolean;
+}
+
 interface AudioBookListProps {
   books: Book[];
   isOwner: boolean;
@@ -32,23 +44,110 @@ interface AudioBookListProps {
 
 export function AudioBookList({ books, isOwner }: AudioBookListProps) {
   const [expandedBooks, setExpandedBooks] = useState<Record<string, boolean>>({});
-  const [playingBook, setPlayingBook] = useState<string | null>(null);
+  const [playingChapter, setPlayingChapter] = useState<string | null>(null);
+  const [bookChapters, setBookChapters] = useState<Record<string, Chapter[]>>({});
+  const [loadingChapters, setLoadingChapters] = useState<Record<string, boolean>>({});
+  const [playbackSpeed, setPlaybackSpeed] = useState<Record<string, number>>({});
+  
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const supabase = createClient();
+
+  // Fetch chapters for a book
+  const fetchChapters = useCallback(async (bookId: string) => {
+    if (bookChapters[bookId] || loadingChapters[bookId]) return;
+    
+    try {
+      setLoadingChapters(prev => ({ ...prev, [bookId]: true }));
+      
+      const { data, error } = await supabase
+        .from('chapters')
+        .select('id, title, content, chapter_number, audio_url, duration_seconds, is_published')
+        .eq('biglio_id', bookId)
+        .eq('is_published', true)
+        .order('chapter_number', { ascending: true });
+
+      if (error) throw error;
+
+      setBookChapters(prev => ({
+        ...prev,
+        [bookId]: (data as Chapter[]) || []
+      }));
+    } catch (error) {
+      console.error('Error fetching chapters:', error);
+    } finally {
+      setLoadingChapters(prev => ({ ...prev, [bookId]: false }));
+    }
+  }, [supabase, bookChapters, loadingChapters]);
 
   const toggleBookExpansion = (bookId: string) => {
+    const willExpand = !expandedBooks[bookId];
+    
     setExpandedBooks(prev => ({
       ...prev,
-      [bookId]: !prev[bookId]
+      [bookId]: willExpand
     }));
-  };
 
-  const handlePlayBook = (bookId: string) => {
-    if (playingBook === bookId) {
-      setPlayingBook(null);
-    } else {
-      setPlayingBook(bookId);
-      // TODO: Start playing the first chapter
+    // Fetch chapters when expanding
+    if (willExpand) {
+      fetchChapters(bookId);
     }
   };
+
+  const handlePlayChapter = useCallback((chapter: Chapter) => {
+    if (!chapter.audio_url) return;
+    
+    // Stop current audio if playing
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    
+    if (playingChapter === chapter.id) {
+      setPlayingChapter(null);
+    } else {
+      setPlayingChapter(chapter.id);
+      
+      // Set up new audio
+      if (audioRef.current) {
+        audioRef.current.src = chapter.audio_url;
+        audioRef.current.load();
+        audioRef.current.play().catch(console.error);
+      }
+    }
+  }, [playingChapter]);
+
+  const togglePlaybackSpeed = (chapterId: string) => {
+    const currentSpeed = playbackSpeed[chapterId] || 1;
+    const newSpeed = currentSpeed === 1 ? 1.5 : currentSpeed === 1.5 ? 2 : 1;
+    
+    setPlaybackSpeed(prev => ({
+      ...prev,
+      [chapterId]: newSpeed
+    }));
+    
+    if (audioRef.current && playingChapter === chapterId) {
+      audioRef.current.playbackRate = newSpeed;
+    }
+  };
+
+  // Handle audio events
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handlePlay = () => setPlayingChapter(prevId => prevId);
+    const handlePause = () => setPlayingChapter(null);
+    const handleEnded = () => setPlayingChapter(null);
+
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, []);
 
   const formatDuration = (seconds: number) => {
     if (seconds < 60) return `${Math.floor(seconds)}s`;
@@ -57,6 +156,12 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     return `${hours}h ${minutes}m`;
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const formatDate = (dateString: string) => {
@@ -183,12 +288,18 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
                     {/* Expand Button */}
                     <button
                       onClick={() => toggleBookExpansion(book.id)}
-                      className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors text-sm font-medium"
                     >
                       {expandedBooks[book.id] ? (
-                        <FaChevronDown className="text-gray-600" />
+                        <>
+                          <FaChevronDown className="text-xs" />
+                          <span>Hide Chapters</span>
+                        </>
                       ) : (
-                        <FaChevronRight className="text-gray-600" />
+                        <>
+                          <FaChevronRight className="text-xs" />
+                          <span>Show Chapters ({book.chapter_count})</span>
+                        </>
                       )}
                     </button>
                   </div>
@@ -196,19 +307,85 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
               </div>
             </div>
 
-            {/* Expanded Chapters (TODO: Implement when we have chapter data) */}
+            {/* Expanded Chapters */}
             {expandedBooks[book.id] && (
-              <div className="border-t border-gray-200 bg-gray-50 p-6">
-                <div className="text-center text-gray-600 py-8">
-                  <FaBook className="text-2xl mx-auto mb-2 text-gray-400" />
-                  <p>Chapter list coming soon...</p>
-                  <p className="text-sm mt-1">Will show individual chapters with play buttons</p>
-                </div>
+              <div className="border-t border-gray-200 bg-gray-50">
+                {loadingChapters[book.id] ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+                    <p className="text-gray-600">Loading chapters...</p>
+                  </div>
+                ) : bookChapters[book.id]?.length > 0 ? (
+                  <div className="space-y-0">
+                    {bookChapters[book.id].map((chapter) => (
+                      <div key={chapter.id} className="flex items-center gap-4 p-4 hover:bg-gray-100 transition-colors border-b border-gray-200 last:border-b-0">
+                        
+                        {/* Play Button */}
+                        <button
+                          onClick={() => handlePlayChapter(chapter)}
+                          className="w-10 h-10 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors flex-shrink-0"
+                          disabled={!chapter.audio_url}
+                        >
+                          {playingChapter === chapter.id ? (
+                            <FaPause className="text-blue-600 text-sm" />
+                          ) : (
+                            <FaPlay className="text-gray-600 text-sm ml-0.5" />
+                          )}
+                        </button>
+
+                        {/* Chapter Info */}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-gray-900 truncate">
+                            Chapter {chapter.chapter_number}: {chapter.title}
+                          </h4>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
+                          </p>
+                        </div>
+
+                        {/* Duration */}
+                        <div className="text-sm text-gray-600 flex-shrink-0">
+                          {formatTime(chapter.duration_seconds)}
+                        </div>
+
+                        {/* Playback Speed */}
+                        <button
+                          onClick={() => togglePlaybackSpeed(chapter.id)}
+                          className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded transition-colors flex-shrink-0"
+                        >
+                          {playbackSpeed[chapter.id] || 1}x
+                        </button>
+
+                        {/* Menu Button */}
+                        <button className="p-1 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0">
+                          <FaEllipsisV className="text-xs" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-600">
+                    <FaBook className="text-2xl mx-auto mb-2 text-gray-400" />
+                    <p>No chapters available</p>
+                    <p className="text-sm mt-1">Chapters will appear here once they're published</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
         ))}
       </div>
+      
+      {/* Hidden Audio Element */}
+      <audio
+        ref={audioRef}
+        onLoadedMetadata={() => {
+          if (audioRef.current && playingChapter) {
+            const speed = Object.values(playbackSpeed).find(s => s) || 1;
+            audioRef.current.playbackRate = speed;
+          }
+        }}
+      />
     </div>
   );
 }
