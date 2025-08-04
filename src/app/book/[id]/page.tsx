@@ -630,6 +630,83 @@ export default function UnifiedBookEditor() {
                   </div>
                 )}
               </div>
+
+              {/* CENTER PANEL: Outline Editor for Selected Chapter */}
+              {selectedChapter && (
+                <div className="flex-1 flex flex-col overflow-hidden bg-white">
+                  {/* Chapter Header */}
+                  <div className="p-6 border-b border-gray-200 bg-white flex-shrink-0">
+                    <div className="flex justify-between items-center">
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          className="text-2xl font-bold text-gray-900 bg-transparent border-none outline-none focus:bg-white focus:border focus:border-purple-300 focus:rounded px-2 py-1 -mx-2 -my-1 w-full"
+                          placeholder="Chapter title"
+                        />
+                        <p className="text-gray-600">Chapter {selectedChapter.chapter_number} - Outline Mode
+                          {savingChapter && <span className="text-purple-600 ml-2">💾 Saving...</span>}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Outline Editor */}
+                  <div className="flex-1 p-6 overflow-y-auto">
+                    <div className="space-y-4">
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-purple-900 mb-2">📋 Chapter Outline</h3>
+                        <p className="text-sm text-purple-700 mb-4">
+                          Plan what this chapter will cover. This helps the AI understand your story structure and provide better writing assistance.
+                        </p>
+                      </div>
+                      
+                      <textarea
+                        value={editOutlineContent}
+                        onChange={(e) => setEditOutlineContent(e.target.value)}
+                        className="w-full h-96 p-4 bg-white text-gray-900 rounded border border-purple-300 leading-relaxed focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 resize-none text-base"
+                        placeholder="Describe what happens in this chapter...
+
+Examples:
+• Key plot points or events
+• Character development moments  
+• Important revelations or twists
+• Emotional beats or themes
+• Setting descriptions
+• Dialogue or action highlights
+
+The more detail you provide, the better the AI can assist with writing!"
+                      />
+                      
+                      <div className="flex justify-between items-center">
+                        <div className="text-sm text-gray-600">
+                          <span>{editOutlineContent.length} characters</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm text-purple-600">💡 This outline guides the AI when you switch to Write mode</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Center Panel - No Chapter Selected */}
+              {!selectedChapter && chapters.length > 0 && (
+                <div className="flex-1 flex items-center justify-center bg-gray-50">
+                  <div className="text-center">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">📋 Select a Chapter to Edit Outline</h2>
+                    <p className="text-gray-600 mb-6">Choose a chapter from the sidebar to edit its outline and planning notes</p>
+                    <div className="bg-purple-100 border border-purple-200 rounded-lg p-4 max-w-md mx-auto">
+                      <p className="text-sm text-purple-800">
+                        💡 <strong>Outline Mode:</strong> Plan chapter content, plot points, and structure. 
+                        The AI uses these outlines to provide better writing assistance when you switch to Write mode.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             /* WRITE MODE - Always Editable */
