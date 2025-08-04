@@ -1036,13 +1036,21 @@ The more detail you provide, the better the AI can assist with writing!"
               chapters={chapters}
               mode={mode}
               onContentSuggestion={(content) => {
-                if (selectedChapter && mode === 'write') {
-                  setEditContent(prev => prev + '\n\n' + content);
+                if (selectedChapter) {
+                  if (mode === 'write') {
+                    setEditContent(prev => prev + '\n\n' + content);
+                  } else if (mode === 'outline') {
+                    setEditOutlineContent(prev => prev + '\n\n' + content);
+                  }
                 }
               }}
               onInsertContent={(content) => {
-                if (selectedChapter && mode === 'write') {
-                  setEditContent(prev => prev + '\n\n' + content);
+                if (selectedChapter) {
+                  if (mode === 'write') {
+                    setEditContent(prev => prev + '\n\n' + content);
+                  } else if (mode === 'outline') {
+                    setEditOutlineContent(prev => prev + '\n\n' + content);
+                  }
                 }
               }}
               className="h-full"
