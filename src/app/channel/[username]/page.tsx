@@ -37,6 +37,7 @@ interface Book {
   total_duration: number;
   created_at: string;
   updated_at: string;
+  is_published: boolean;
 }
 
 interface SupabaseBook {
@@ -49,6 +50,7 @@ interface SupabaseBook {
   updated_at: string;
   total_chapters: number;
   total_duration_seconds: number;
+  is_published: boolean;
 }
 
 
@@ -100,14 +102,21 @@ export default function ChannelPage() {
 
         // Check if current user is the owner
         const { data: { user } } = await supabase.auth.getUser();
-        setIsOwner(user?.id === channel.user_id);
+        const userIsOwner = user?.id === channel.user_id;
+        setIsOwner(userIsOwner);
 
         // Fetch books for this channel
-        const { data: booksData, error: booksError } = await supabase
+        let booksQuery = supabase
           .from('biglios')
-          .select('id, title, description, cover_url, channel_id, created_at, updated_at, total_chapters, total_duration_seconds')
-          .eq('channel_id', channel.id)
-          .eq('is_published', true)
+          .select('id, title, description, cover_url, channel_id, created_at, updated_at, total_chapters, total_duration_seconds, is_published')
+          .eq('channel_id', channel.id);
+        
+        // Only filter by is_published if viewer is not the channel owner
+        if (!userIsOwner) {
+          booksQuery = booksQuery.eq('is_published', true);
+        }
+        
+        const { data: booksData, error: booksError } = await booksQuery
           .order('created_at', { ascending: false });
 
         if (booksError) {
@@ -118,7 +127,8 @@ export default function ChannelPage() {
         const booksWithStats = (booksData as SupabaseBook[])?.map(book => ({
           ...book,
           chapter_count: book.total_chapters || 0,
-          total_duration: book.total_duration_seconds || 0
+          total_duration: book.total_duration_seconds || 0,
+          is_published: book.is_published
         }));
 
         setBooks(booksWithStats as Book[]);

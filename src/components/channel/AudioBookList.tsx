@@ -22,6 +22,7 @@ interface Book {
   total_duration: number;
   created_at: string;
   updated_at: string;
+  is_published: boolean;
 }
 
 interface AudioBookListProps {
@@ -145,9 +146,16 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-xl font-bold text-gray-900 truncate">
-                        {book.title}
-                      </h3>
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-xl font-bold text-gray-900 truncate">
+                          {book.title}
+                        </h3>
+                        {!book.is_published && (
+                          <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                            DRAFT
+                          </span>
+                        )}
+                      </div>
                       
                       {/* Stats */}
                       <div className="flex items-center gap-6 mt-2 text-sm text-gray-600">
