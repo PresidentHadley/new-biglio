@@ -10,29 +10,7 @@ import { AudioGenerationButton } from '@/components/AudioGenerationButton';
 import { AIAssistantChat } from '@/components/AIAssistantChat';
 import Link from 'next/link';
 
-// Typed debounce function for chapter saving
-function debounceChapterSave(
-  func: (chapterId: string, title: string, content: string) => void, 
-  wait: number
-) {
-  let timeout: NodeJS.Timeout;
-  return (chapterId: string, title: string, content: string) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(chapterId, title, content), wait);
-  };
-}
 
-// Typed debounce function for outline saving
-function debounceOutlineSave(
-  func: (chapterId: string, title: string, outlineContent: string) => void, 
-  wait: number
-) {
-  let timeout: NodeJS.Timeout;
-  return (chapterId: string, title: string, outlineContent: string) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(chapterId, title, outlineContent), wait);
-  };
-}
 
 type EditorMode = 'outline' | 'write';
 
@@ -235,12 +213,28 @@ export default function UnifiedBookEditor() {
 
   // Create debounced save functions
   const debouncedSave = useCallback(
-    debounceChapterSave(saveChapterContent, 1000),
+    (() => {
+      let timeoutId: NodeJS.Timeout;
+      return (chapterId: string, title: string, content: string) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          saveChapterContent(chapterId, title, content);
+        }, 1000);
+      };
+    })(),
     [saveChapterContent]
   );
 
   const debouncedSaveOutline = useCallback(
-    debounceOutlineSave(saveChapterOutline, 1000),
+    (() => {
+      let timeoutId: NodeJS.Timeout;
+      return (chapterId: string, title: string, outlineContent: string) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          saveChapterOutline(chapterId, title, outlineContent);
+        }, 1000);
+      };
+    })(),
     [saveChapterOutline]
   );
 
