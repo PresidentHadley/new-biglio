@@ -184,7 +184,7 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
         <p className="text-gray-600 mb-6">
           {isOwner 
             ? 'Start creating your first audiobook to share with the world.'
-            : 'This creator hasn\'t published any books yet. Check back later!'
+            : 'This creator hasn&apos;t published any books yet. Check back later!'
           }
         </p>
         {isOwner && (
@@ -367,7 +367,7 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
                   <div className="text-center py-8 text-gray-600">
                     <FaBook className="text-2xl mx-auto mb-2 text-gray-400" />
                     <p>No chapters available</p>
-                    <p className="text-sm mt-1">Chapters will appear here once they're published</p>
+                    <p className="text-sm mt-1">Chapters will appear here once they&apos;re published</p>
                   </div>
                 )}
               </div>
