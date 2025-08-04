@@ -55,6 +55,11 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
   // Debug logging
   console.log('📚 AudioBookList received books:', books);
   console.log('👤 isOwner:', isOwner);
+  
+  // Debug specific book chapter count issue
+  books.forEach(book => {
+    console.log(`📖 Book "${book.title}": shows ${book.chapter_count} chapters, total_duration: ${book.total_duration}s`);
+  });
 
   // Fetch chapters for a book
   const fetchChapters = useCallback(async (bookId: string) => {

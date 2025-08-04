@@ -117,21 +117,35 @@ export default function UnifiedBookEditor() {
       setChapters(chaptersData);
       
       // Auto-select first chapter if none selected and chapters exist
-      if (chaptersData.length > 0 && !selectedChapter) {
-        const firstChapter = chaptersData[0];
-        setSelectedChapter(firstChapter);
-        setEditTitle(firstChapter.title);
-        setEditContent(firstChapter.content || '');
-        setEditOutlineContent(firstChapter.outline_content || '');
+      // Check current selectedChapter state instead of dependency
+      if (chaptersData.length > 0) {
+        setSelectedChapter(prevSelected => {
+          if (!prevSelected && chaptersData.length > 0) {
+            const firstChapter = chaptersData[0];
+            setEditTitle(firstChapter.title);
+            setEditContent(firstChapter.content || '');
+            setEditOutlineContent(firstChapter.outline_content || '');
+            return firstChapter;
+          }
+          return prevSelected;
+        });
       }
       
-      console.log('Fetched chapters:', chaptersData.length, 'chapters');
+      console.log('📚 Fetched chapters:', chaptersData.length, 'chapters');
+      console.log('📋 Chapter details:', chaptersData.map(ch => ({ 
+        id: ch.id, 
+        title: ch.title, 
+        number: ch.chapter_number,
+        hasContent: !!ch.content,
+        hasOutline: !!ch.outline_content,
+        hasAudio: !!ch.audio_url
+      })));
     } catch (error) {
-      console.error('Error fetching chapters:', error);
+      console.error('❌ Error fetching chapters:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [supabase, bookId, selectedChapter]);
+  }, [supabase, bookId]); // ← Removed selectedChapter dependency
 
   // Select a chapter and load its content into edit state
   const selectChapter = useCallback((chapter: Chapter) => {
