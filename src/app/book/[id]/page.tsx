@@ -43,6 +43,10 @@ interface Book {
   total_chapters: number;
   is_published: boolean;
   voice_preference?: 'male' | 'female' | null;
+  book_type?: 'fiction' | 'non-fiction';
+  genre?: string;
+  target_audience?: string[];
+  reading_level?: string;
 }
 
 interface Chapter {
@@ -95,7 +99,7 @@ export default function UnifiedBookEditor() {
     try {
       const { data, error } = await supabase
         .from('biglios')
-        .select('id, title, description, total_chapters, is_published, voice_preference')
+        .select('id, title, description, total_chapters, is_published, voice_preference, book_type, genre, target_audience, reading_level')
         .eq('id', bookId)
         .single();
       

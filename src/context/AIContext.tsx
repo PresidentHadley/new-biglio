@@ -4,7 +4,11 @@ import { createContext, useContext, useState, ReactNode, useCallback } from 'rea
 
 interface BookContext {
   bookTitle?: string;
-  bookDescription?: string; 
+  bookDescription?: string;
+  bookType?: 'fiction' | 'non-fiction';
+  genre?: string;
+  targetAudience?: string[];
+  readingLevel?: string;
   currentChapterTitle?: string;
   currentChapterNumber?: number;
   currentChapterContent?: string;
@@ -173,6 +177,21 @@ export function AIProvider({ children }: { children: ReactNode }) {
       if (context.bookDescription) {
         contextualMessage += ` - ${context.bookDescription}`;
       }
+      
+      // Add book metadata for better AI context
+      if (context.bookType) {
+        contextualMessage += `\nType: ${context.bookType}`;
+      }
+      if (context.genre) {
+        contextualMessage += `\nGenre: ${context.genre}`;
+      }
+      if (context.targetAudience && context.targetAudience.length > 0) {
+        contextualMessage += `\nTarget Audience: ${context.targetAudience.join(', ')}`;
+      }
+      if (context.readingLevel) {
+        contextualMessage += `\nReading Level: ${context.readingLevel}`;
+      }
+      
       if (context.totalChapters) {
         contextualMessage += ` (${context.totalChapters} chapters)`;
       }

@@ -31,6 +31,10 @@ interface Book {
   title: string;
   description?: string;
   total_chapters?: number;
+  book_type?: 'fiction' | 'non-fiction';
+  genre?: string;
+  target_audience?: string[];
+  reading_level?: string;
 }
 
 interface Chapter {
@@ -243,6 +247,10 @@ Let's create something amazing!`;
     return {
       bookTitle: book?.title || '',
       bookDescription: book?.description || '',
+      bookType: book?.book_type,
+      genre: book?.genre,
+      targetAudience: book?.target_audience,
+      readingLevel: book?.reading_level,
       currentChapterTitle: currentChapter?.title || '',
       currentChapterNumber: currentChapter?.chapter_number || 0,
       currentChapterContent: currentChapter?.content || '',

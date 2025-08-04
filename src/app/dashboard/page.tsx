@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { AuthModal } from '@/components/AuthModal';
+import { BookCreationModal, BookFormData } from '@/components/BookCreationModal';
 import Link from 'next/link';
 
 interface Biglio {
@@ -15,6 +16,10 @@ interface Biglio {
   is_published: boolean;
   updated_at: string;
   channel_id: string;
+  book_type?: 'fiction' | 'non-fiction';
+  genre?: string;
+  target_audience?: string[];
+  reading_level?: string;
 }
 
 export default function Dashboard() {
@@ -24,19 +29,16 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [userChannel, setUserChannel] = useState<{id: string; handle: string; display_name: string} | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newBiglioTitle, setNewBiglioTitle] = useState('');
-  const [newBiglioDescription, setNewBiglioDescription] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [createSuccess, setCreateSuccess] = useState(false);
-  const [createError, setCreateError] = useState('');
 
   const fetchBooksForChannel = useCallback(async (channelId: string) => {
     const supabase = createClient();
     try {
       const { data, error } = await supabase
         .from('biglios')
-        .select('id, title, description, total_chapters, is_published, updated_at, channel_id')
+        .select('id, title, description, total_chapters, is_published, updated_at, channel_id, book_type, genre, target_audience, reading_level')
         .eq('channel_id', channelId)
         .order('created_at', { ascending: false });
 
@@ -92,20 +94,23 @@ export default function Dashboard() {
   }, [user, authLoading, checkUserChannel]);
 
 
-  const createBiglio = async () => {
-    if (!newBiglioTitle.trim() || !userChannel?.id) return;
+  const handleCreateBiglio = async (bookData: BookFormData) => {
+    if (!userChannel?.id) return;
     
     const supabase = createClient();
     try {
       setIsCreating(true);
-      setCreateError('');
       setCreateSuccess(false);
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('biglios')
         .insert({
-          title: newBiglioTitle,
-          description: newBiglioDescription || '',
+          title: bookData.title,
+          description: bookData.description || '',
+          book_type: bookData.book_type,
+          genre: bookData.genre,
+          target_audience: bookData.target_audience,
+          reading_level: bookData.reading_level,
           channel_id: userChannel.id,
           total_chapters: 0,
           is_published: false
@@ -115,21 +120,21 @@ export default function Dashboard() {
 
       if (error) throw error;
 
-      // Success! Show feedback and refresh
+      // Success! Show feedback and redirect to outline editor
       setCreateSuccess(true);
-      setNewBiglioTitle('');
-      setNewBiglioDescription('');
-      setShowCreateForm(false);
+      setShowCreateModal(false);
       
       // Refresh the biglios list
       await fetchBooksForChannel(userChannel.id);
       
-      // Clear success message after 3 seconds
-      setTimeout(() => setCreateSuccess(false), 3000);
+      // Redirect to the new book's outline editor
+      if (data) {
+        router.push(`/book/${data.id}?mode=outline`);
+      }
       
     } catch (error) {
       console.error('Error creating biglio:', error);
-      setCreateError(error instanceof Error ? error.message : 'Failed to create biglio');
+      throw error; // Re-throw so the modal can handle it
     } finally {
       setIsCreating(false);
     }
@@ -142,7 +147,7 @@ export default function Dashboard() {
           <h1 className="text-4xl font-bold text-white">📚 Biglio Dashboard</h1>
           <div className="flex gap-4">
             <button
-              onClick={() => setShowCreateForm(!showCreateForm)}
+              onClick={() => setShowCreateModal(true)}
               className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
             >
               ➕ New Biglio
@@ -160,54 +165,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Create Biglio Form */}
-        {showCreateForm && (
-          <div className="bg-gray-800 rounded-lg p-6 mb-8">
-            <h2 className="text-2xl font-bold text-white mb-4">Create New Biglio</h2>
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Biglio Title"
-                value={newBiglioTitle}
-                onChange={(e) => setNewBiglioTitle(e.target.value)}
-                className="w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
-              />
-              <textarea
-                placeholder="Biglio Description (optional)"
-                value={newBiglioDescription}
-                onChange={(e) => setNewBiglioDescription(e.target.value)}
-                rows={3}
-                className="w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none resize-none"
-              />
-              
-              {/* Error Message */}
-              {createError && (
-                <div className="bg-red-800 border border-red-600 text-red-100 px-4 py-3 rounded-lg">
-                  ❌ {createError}
-                </div>
-              )}
-              
-              <div className="flex gap-4">
-                <button
-                  onClick={createBiglio}
-                  disabled={isCreating || !newBiglioTitle.trim()}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
-                >
-                  {isCreating ? 'Creating...' : 'Create Biglio'}
-                </button>
-                <button
-                  onClick={() => {
-                    setShowCreateForm(false);
-                    setCreateError('');
-                  }}
-                  className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-semibold transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {/* Books List */}
         {isLoading ? (
@@ -278,6 +236,16 @@ export default function Dashboard() {
             checkUserChannel();
           }
         }}
+      />
+
+      {/* Book Creation Modal */}
+      <BookCreationModal
+        isOpen={showCreateModal}
+        onClose={() => {
+          setShowCreateModal(false);
+        }}
+        onSubmit={handleCreateBiglio}
+        isCreating={isCreating}
       />
     </div>
   );
