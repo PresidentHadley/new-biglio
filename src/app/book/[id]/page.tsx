@@ -130,7 +130,7 @@ export default function UnifiedBookEditor() {
     } finally {
       setIsLoading(false);
     }
-  }, [supabase, bookId]);
+  }, [supabase, bookId, selectedChapter]);
 
   // Select a chapter and load its content into edit state
   const selectChapter = useCallback((chapter: Chapter) => {
@@ -314,13 +314,7 @@ export default function UnifiedBookEditor() {
         .select();
 
       if (error) {
-        console.error('Database error creating chapter:', {
-          error,
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
-        });
+        console.error('Database error creating chapter:', error);
         throw error;
       }
 
@@ -352,16 +346,19 @@ export default function UnifiedBookEditor() {
       
       // Better error message handling
       let errorMessage = 'Unknown error';
-      if (error && typeof error === 'object') {
-        if ('message' in error) {
-          errorMessage = error.message;
-        } else if ('code' in error) {
-          errorMessage = `Database error: ${error.code}`;
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (error && typeof error === 'object') {
+        const errorObj = error as { message?: unknown; code?: unknown };
+        if ('message' in error && typeof errorObj.message === 'string') {
+          errorMessage = errorObj.message;
+        } else if ('code' in error && typeof errorObj.code === 'string') {
+          errorMessage = `Database error: ${errorObj.code}`;
         } else {
           errorMessage = JSON.stringify(error, null, 2);
         }
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
       }
       
       // Check for specific constraint violations
