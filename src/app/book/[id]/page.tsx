@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -225,32 +225,28 @@ export default function UnifiedBookEditor() {
     }
   }, [supabase]);
 
-  // Create debounced save functions
-  const debouncedSave = useCallback(
-    (() => {
-      let timeoutId: NodeJS.Timeout;
-      return (chapterId: string, title: string, content: string) => {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => {
-          saveChapterContent(chapterId, title, content);
-        }, 1000);
-      };
-    })(),
-    [saveChapterContent]
-  );
+  // Refs to store timeout IDs for debouncing
+  const saveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const outlineTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
-  const debouncedSaveOutline = useCallback(
-    (() => {
-      let timeoutId: NodeJS.Timeout;
-      return (chapterId: string, title: string, outlineContent: string) => {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => {
-          saveChapterOutline(chapterId, title, outlineContent);
-        }, 1000);
-      };
-    })(),
-    [saveChapterOutline]
-  );
+  // Create debounced save functions
+  const debouncedSave = useCallback((chapterId: string, title: string, content: string) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(() => {
+      saveChapterContent(chapterId, title, content);
+    }, 1000);
+  }, [saveChapterContent]);
+
+  const debouncedSaveOutline = useCallback((chapterId: string, title: string, outlineContent: string) => {
+    if (outlineTimeoutRef.current) {
+      clearTimeout(outlineTimeoutRef.current);
+    }
+    outlineTimeoutRef.current = setTimeout(() => {
+      saveChapterOutline(chapterId, title, outlineContent);
+    }, 1000);
+  }, [saveChapterOutline]);
 
   // Check authentication and load data
   useEffect(() => {
@@ -343,7 +339,17 @@ export default function UnifiedBookEditor() {
       });
       
       // Try creating with a unique timestamp or order_index to avoid conflicts
-      const insertData: any = {
+      const insertData: {
+        biglio_id: string;
+        title: string;
+        content: string;
+        outline_content: string;
+        summary: string | null;
+        chapter_number: number;
+        is_published: boolean;
+        duration_seconds: number;
+        order_index?: number;
+      } = {
         biglio_id: bookId,
         title: newChapterTitle,
         content: '',
