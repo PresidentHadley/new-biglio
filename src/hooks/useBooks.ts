@@ -132,6 +132,12 @@ export function useBooks() {
 
       setBooks(transformedBooks as Book[]);
       console.log(`🎉 Main feed updated with ${transformedBooks.length} published books`);
+      
+      // Debug cover URLs
+      transformedBooks.forEach((book, index) => {
+        console.log(`📸 Book ${index + 1}: "${book.title}" - cover_url:`, book.cover_url);
+      });
+      
       setError(null); // Clear any previous errors on success
     } catch (err) {
       console.error('❌ Error fetching books:', err);

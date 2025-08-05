@@ -103,6 +103,7 @@ export default function HomePage() {
               className="relative aspect-square cursor-pointer hover:scale-105 transition-transform overflow-hidden"
               onClick={() => openBookModal(book)}
             >
+              {console.log(`📸 Book "${book.title}" cover_url:`, book.cover_url)}
               {book.cover_url ? (
                 // Real book cover
                 <>
