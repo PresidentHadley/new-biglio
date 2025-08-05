@@ -117,7 +117,7 @@ export default function HomePage() {
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
                   {/* Dark overlay for better text readability */}
-                  <div className="absolute inset-0 bg-black bg-opacity-20 hover:bg-opacity-10 transition-all flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black bg-opacity-10 hover:bg-opacity-0 transition-all flex items-center justify-center">
                     <button className="bg-white bg-opacity-90 backdrop-blur-sm rounded-full p-4 hover:bg-opacity-100 transition-all shadow-lg">
                       <FaPlay className="text-gray-900 text-xl ml-1" />
                     </button>
