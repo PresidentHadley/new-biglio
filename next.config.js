@@ -13,6 +13,10 @@ const nextConfig = {
       'hdvadrswlzmjtlfkdewu.supabase.co', // Your Supabase storage domain
       'images.unsplash.com', // For stock images
     ],
+    formats: ['image/webp', 'image/avif'],
+    minimumCacheTTL: 60,
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   env: {
     NEXT_PUBLIC_APP_NAME: 'Biglio',

@@ -36,17 +36,8 @@ export function generateStorageManagerToken(userId: string): string {
  * Use this for storage operations that need elevated permissions
  */
 export function createStorageManagerClient(userId: string) {
-  const { createClient } = require('@/lib/supabase');
-  const storageToken = generateStorageManagerToken(userId);
-  
-  const supabase = createClient();
-  
-  // Override the session with storage manager token
-  supabase.auth.session = () => ({
-    access_token: storageToken,
-    token_type: 'bearer',
-    user: { id: userId }
-  });
-
-  return supabase;
+  // Note: This function is for future use when implementing custom roles
+  // Currently not used as we're using simplified RLS policies
+  console.log('Storage manager client would be created for user:', userId);
+  return null;
 }

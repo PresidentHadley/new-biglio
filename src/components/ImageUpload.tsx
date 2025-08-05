@@ -147,12 +147,21 @@ export function ImageUpload({
   const generateFileName = (originalName: string): string => {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2);
-    const baseName = originalName.split('.')[0] || 'image';
+    
+    // Clean the base name: remove spaces, special chars, keep only alphanumeric and hyphens
+    const baseName = (originalName.split('.')[0] || 'image')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '-')  // Replace non-alphanumeric with hyphens
+      .replace(/-+/g, '-')         // Replace multiple hyphens with single
+      .replace(/^-|-$/g, '')       // Remove leading/trailing hyphens
+      .substring(0, 20);           // Limit length
+    
+    const cleanName = baseName || 'image'; // Fallback if everything was removed
     
     if (folder) {
-      return `${folder}/${timestamp}-${random}-${baseName}.webp`;
+      return `${folder}/${timestamp}-${random}-${cleanName}.webp`;
     }
-    return `${timestamp}-${random}-${baseName}.webp`;
+    return `${timestamp}-${random}-${cleanName}.webp`;
   };
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
