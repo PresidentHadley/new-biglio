@@ -252,6 +252,27 @@ export function AudioPlayerModal({ book, isOpen, onClose }: AudioPlayerModalProp
         <div className="flex flex-col md:flex-row">
           {/* Main Player */}
           <div className="flex-1 p-4 md:p-6">
+            {/* Large Book Cover for Mobile */}
+            <div className="flex justify-center mb-6 md:hidden">
+              <div className="w-64 h-64 rounded-lg overflow-hidden shadow-lg">
+                {book.cover_url ? (
+                  <Image
+                    src={book.cover_url}
+                    alt={book.title}
+                    width={256}
+                    height={256}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+                    <span className="text-white font-bold text-6xl">
+                      {book.title.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Current Chapter Info */}
             {currentChapter && (
               <div className="mb-4 md:mb-6">
