@@ -1144,7 +1144,7 @@ The more detail you provide, the better the AI can assist with writing!"
                       </div>
                       <h2 className="text-2xl font-bold text-green-800 mb-2">Great! Your Outline is Ready</h2>
                       <p className="text-green-700">
-                        You now have {chapters.length} chapter{chapters.length > 1 ? 's' : ''} outlined with AI-generated summaries. Here's what to do next:
+                        You now have {chapters.length} chapter{chapters.length > 1 ? 's' : ''} outlined with AI-generated summaries. Here&apos;s what to do next:
                       </p>
                     </div>
 
@@ -1174,7 +1174,7 @@ The more detail you provide, the better the AI can assist with writing!"
                           <div>
                             <h4 className="font-medium text-gray-900">Start Writing</h4>
                             <p className="text-sm text-gray-600">
-                              When you're ready to start writing, click the button below or switch to <strong>Write Mode</strong> in the top toolbar.
+                              When you&apos;re ready to start writing, click the button below or switch to <strong>Write Mode</strong> in the top toolbar.
                             </p>
                           </div>
                         </div>
@@ -1186,7 +1186,7 @@ The more detail you provide, the better the AI can assist with writing!"
                           <div>
                             <h4 className="font-medium text-gray-900">Use AI Assistant</h4>
                             <p className="text-sm text-gray-600">
-                              The AI assistant on the right can help you brainstorm, overcome writer's block, or expand your ideas.
+                              The AI assistant on the right can help you brainstorm, overcome writer&apos;s block, or expand your ideas.
                             </p>
                           </div>
                         </div>
@@ -1212,7 +1212,7 @@ The more detail you provide, the better the AI can assist with writing!"
                         onClick={() => setShowOutlineSuccess(false)}
                         className="w-full px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
                       >
-                        📋 I'll explore the chapters first
+                        📋 I&apos;ll explore the chapters first
                       </button>
                     </div>
                   </div>
