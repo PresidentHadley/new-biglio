@@ -284,7 +284,7 @@ export function BookCreationModal({ isOpen, onClose, onSubmit, isCreating = fals
           setFormData(prev => ({ ...prev, cover_url: imageUrl }));
         }}
         currentImageUrl={formData.cover_url}
-        userFolder={user?.id}
+        userFolder={undefined}
         genre={formData.genre}
         bucket="book-covers"
         title="Choose Book Cover"

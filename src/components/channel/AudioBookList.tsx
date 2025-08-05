@@ -634,7 +634,7 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
         currentImageUrl={
           editingCoverBookId ? books.find(b => b.id === editingCoverBookId)?.cover_url : undefined
         }
-        userFolder={editingCoverBookId || undefined} // Use book ID as folder for organization
+        userFolder={undefined} // Use root folder to avoid RLS policy issues
         bucket="book-covers"
         title="Update Book Cover"
         aspectRatio="portrait"
