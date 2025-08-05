@@ -101,9 +101,11 @@ export default function HomePage() {
             {/* Book Cover - Real Data */}
             <div 
               className="relative aspect-square cursor-pointer hover:scale-105 transition-transform overflow-hidden"
-              onClick={() => openBookModal(book)}
+              onClick={() => {
+                console.log(`📸 Book "${book.title}" cover_url:`, book.cover_url);
+                openBookModal(book);
+              }}
             >
-              {console.log(`📸 Book "${book.title}" cover_url:`, book.cover_url)}
               {book.cover_url ? (
                 // Real book cover
                 <>
