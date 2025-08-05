@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { FaTimes } from 'react-icons/fa';
-import { ImageUpload } from './ImageUpload';
+import { FaTimes, FaImages } from 'react-icons/fa';
+import { ImagePicker } from './ImagePicker';
 import { useAuth } from '@/context/AuthContext';
+import Image from 'next/image';
 
 interface BookCreationModalProps {
   isOpen: boolean;
@@ -52,6 +53,7 @@ export function BookCreationModal({ isOpen, onClose, onSubmit, isCreating = fals
   });
 
   const [errors, setErrors] = useState<{[K in keyof BookFormData]?: string | string[]}>({});
+  const [showImagePicker, setShowImagePicker] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,24 +137,52 @@ export function BookCreationModal({ isOpen, onClose, onSubmit, isCreating = fals
               Book Cover
             </label>
             <p className="text-sm text-gray-600 mb-3">
-              Upload a cover image to make your book stand out on the main feed. You can always add or change this later.
+              Choose from our curated stock images or upload your own. A great cover makes your book stand out!
             </p>
-            <ImageUpload
-              bucket="book-covers"
-              folder={user?.id}
-              currentImageUrl={formData.cover_url}
-              onImageUploaded={(url) => {
-                console.log('📸 Cover image uploaded:', url);
-                setFormData(prev => ({ ...prev, cover_url: url }));
-              }}
-              onImageRemoved={() => {
-                setFormData(prev => ({ ...prev, cover_url: '' }));
-              }}
-              placeholder="Upload book cover"
-              aspectRatio="portrait"
-              maxSizeMB={3}
-              className="w-full max-w-xs mx-auto"
-            />
+            
+            {/* Cover Preview & Selector */}
+            <div className="max-w-xs mx-auto">
+              {formData.cover_url ? (
+                <div className="relative">
+                  <div className="aspect-[3/4] relative rounded-lg overflow-hidden border-2 border-gray-200">
+                    <Image
+                      src={formData.cover_url}
+                      alt="Book cover preview"
+                      fill
+                      className="object-cover"
+                      sizes="300px"
+                    />
+                  </div>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowImagePicker(true)}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                    >
+                      <FaImages className="w-4 h-4" />
+                      Change Cover
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, cover_url: '' }))}
+                      className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowImagePicker(true)}
+                  className="w-full aspect-[3/4] border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-400 transition-colors flex flex-col items-center justify-center text-gray-500 hover:text-purple-600 bg-gray-50 hover:bg-purple-50"
+                >
+                  <FaImages className="w-12 h-12 mb-3" />
+                  <span className="font-medium text-lg">Choose Book Cover</span>
+                  <span className="text-sm">Stock images or upload custom</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Book Type */}
@@ -244,6 +274,22 @@ export function BookCreationModal({ isOpen, onClose, onSubmit, isCreating = fals
           </div>
         </form>
       </div>
+
+      {/* Image Picker Modal */}
+      <ImagePicker
+        isOpen={showImagePicker}
+        onClose={() => setShowImagePicker(false)}
+        onImageSelected={(imageUrl) => {
+          console.log('📸 Cover image selected:', imageUrl);
+          setFormData(prev => ({ ...prev, cover_url: imageUrl }));
+        }}
+        currentImageUrl={formData.cover_url}
+        userFolder={user?.id}
+        genre={formData.genre}
+        bucket="book-covers"
+        title="Choose Book Cover"
+        aspectRatio="portrait"
+      />
     </div>
   );
 }

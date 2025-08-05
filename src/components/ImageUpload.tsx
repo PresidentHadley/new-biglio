@@ -16,6 +16,11 @@ interface ImageUploadProps {
   acceptedTypes?: string;
   maxSizeMB?: number;
   aspectRatio?: 'square' | 'landscape' | 'portrait' | 'free';
+  minWidth?: number;
+  minHeight?: number;
+  targetWidth?: number;
+  targetHeight?: number;
+  compressionQuality?: number;
 }
 
 export function ImageUpload({
@@ -28,7 +33,12 @@ export function ImageUpload({
   placeholder = 'Upload image',
   acceptedTypes = 'image/jpeg,image/png,image/webp',
   maxSizeMB = 5,
-  aspectRatio = 'free'
+  aspectRatio = 'free',
+  minWidth = 200,
+  minHeight = 200,
+  targetWidth = 800,
+  targetHeight = 1200,
+  compressionQuality = 0.8
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentImageUrl || null);
@@ -51,15 +61,98 @@ export function ImageUpload({
     return null;
   };
 
-  const generateFileName = (file: File): string => {
+  const validateImageDimensions = (img: HTMLImageElement): string | null => {
+    if (img.width < minWidth || img.height < minHeight) {
+      return `Image must be at least ${minWidth}x${minHeight} pixels`;
+    }
+
+    // Check aspect ratio constraints for specific types
+    if (aspectRatio === 'portrait') {
+      const ratio = img.width / img.height;
+      if (ratio < 0.6 || ratio > 0.8) {
+        return 'Please use a portrait image (3:4 or 2:3 aspect ratio works best)';
+      }
+    } else if (aspectRatio === 'square') {
+      const ratio = img.width / img.height;
+      if (ratio < 0.9 || ratio > 1.1) {
+        return 'Please use a square image';
+      }
+    } else if (aspectRatio === 'landscape') {
+      const ratio = img.width / img.height;
+      if (ratio < 1.3 || ratio > 2.0) {
+        return 'Please use a landscape image (16:9 or 4:3 aspect ratio works best)';
+      }
+    }
+
+    return null;
+  };
+
+  const compressAndResizeImage = (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = document.createElement('img');
+
+      img.onload = () => {
+        // Validate dimensions first
+        const dimensionError = validateImageDimensions(img);
+        if (dimensionError) {
+          reject(new Error(dimensionError));
+          return;
+        }
+
+        // Calculate target dimensions maintaining aspect ratio
+        let { width, height } = img;
+        
+        // Resize to target dimensions if larger
+        if (width > targetWidth || height > targetHeight) {
+          const ratio = Math.min(targetWidth / width, targetHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        // Set canvas size
+        canvas.width = width;
+        canvas.height = height;
+
+        // Draw and compress
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Failed to compress image'));
+              return;
+            }
+            
+            // Create new file with compressed data
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/webp', // Convert to WebP for better performance
+              lastModified: Date.now(),
+            });
+            
+            console.log(`📸 Image compressed: ${file.size} bytes → ${compressedFile.size} bytes`);
+            resolve(compressedFile);
+          },
+          'image/webp',
+          compressionQuality
+        );
+      };
+
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
+  const generateFileName = (originalName: string): string => {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2);
-    const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const baseName = originalName.split('.')[0] || 'image';
     
     if (folder) {
-      return `${folder}/${timestamp}-${random}.${extension}`;
+      return `${folder}/${timestamp}-${random}-${baseName}.webp`;
     }
-    return `${timestamp}-${random}.${extension}`;
+    return `${timestamp}-${random}-${baseName}.webp`;
   };
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,27 +161,30 @@ export function ImageUpload({
 
     setError(null);
 
-    // Validate file
+    // Basic file validation
     const validationError = validateFile(file);
     if (validationError) {
       setError(validationError);
       return;
     }
 
-    // Create preview
-    const objectUrl = URL.createObjectURL(file);
-    setPreviewUrl(objectUrl);
-
     try {
       setUploading(true);
 
+      // Compress and resize image (includes dimension validation)
+      const processedFile = await compressAndResizeImage(file);
+      
+      // Create preview from processed file
+      const objectUrl = URL.createObjectURL(processedFile);
+      setPreviewUrl(objectUrl);
+
       // Generate unique filename
-      const fileName = generateFileName(file);
+      const fileName = generateFileName(file.name);
 
       // Upload to Supabase Storage
-      const { data, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from(bucket)
-        .upload(fileName, file, {
+        .upload(fileName, processedFile, {
           cacheControl: '3600',
           upsert: false
         });
@@ -103,6 +199,7 @@ export function ImageUpload({
         .getPublicUrl(fileName);
 
       console.log(`✅ Image uploaded successfully to ${bucket}:`, publicUrl);
+      console.log(`📊 Original: ${file.size} bytes → Compressed: ${processedFile.size} bytes`);
       
       // Clean up object URL
       URL.revokeObjectURL(objectUrl);
@@ -111,11 +208,11 @@ export function ImageUpload({
       onImageUploaded(publicUrl);
       
     } catch (err) {
-      console.error('❌ Error uploading image:', err);
-      setError('Failed to upload image. Please try again.');
+      console.error('❌ Error processing/uploading image:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to upload image. Please try again.';
+      setError(errorMessage);
       
       // Reset preview on error
-      URL.revokeObjectURL(objectUrl);
       setPreviewUrl(currentImageUrl || null);
     } finally {
       setUploading(false);

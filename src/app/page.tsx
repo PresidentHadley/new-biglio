@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { FaPlay, FaHeart, FaComment, FaBookmark } from 'react-icons/fa';
+import Link from 'next/link';
+import { FaPlay, FaHeart, FaComment, FaBookmark, FaUser } from 'react-icons/fa';
 import { useBooks } from '@/hooks/useBooks';
 import { AudioPlayerModal } from '@/components/AudioPlayerModal';
 import { DebugMainFeed } from '@/components/DebugMainFeed';
-// Removed unused Link import
 
 interface Book {
   id: string;
@@ -137,6 +137,37 @@ export default function HomePage() {
               )}
             </div>
 
+            {/* Channel Info Section - Instagram Style */}
+            <div className="px-4 py-3 flex items-center justify-between border-b border-gray-700">
+              <Link 
+                href={`/channel/${book.channel.handle}`}
+                className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                  {book.channel.avatar_url ? (
+                    <Image
+                      src={book.channel.avatar_url}
+                      alt={book.channel.display_name}
+                      width={32}
+                      height={32}
+                      className="object-cover"
+                    />
+                  ) : (
+                    <FaUser className="text-white text-sm" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-white font-medium text-sm">{book.channel.display_name}</p>
+                  <p className="text-gray-400 text-xs">@{book.channel.handle}</p>
+                </div>
+              </Link>
+              <div className="text-right">
+                <p className="text-white text-xs">{book.total_chapters} chapters</p>
+                <p className="text-gray-400 text-xs">{new Date(book.published_at).toLocaleDateString()}</p>
+              </div>
+            </div>
+
             {/* Action Buttons */}
             <div className="flex items-center justify-between px-4 py-3">
               <div className="flex space-x-4">
@@ -156,7 +187,14 @@ export default function HomePage() {
             <div className="px-4 pb-3">
               <p className="text-white font-semibold text-sm">{book.like_count.toLocaleString()} likes</p>
               <p className="text-white text-sm mt-1">
-                <span className="font-semibold">@{book.channel.handle}</span> {book.description} 🎧✨
+                <Link 
+                  href={`/channel/${book.channel.handle}`}
+                  className="font-semibold hover:text-blue-300 transition-colors cursor-pointer inline-flex items-center gap-1"
+                  onClick={(e) => e.stopPropagation()} // Prevent triggering book modal
+                >
+                  <FaUser className="w-3 h-3" />
+                  @{book.channel.handle}
+                </Link> {book.description} 🎧✨
               </p>
               <p className="text-gray-400 text-sm mt-1">View all {book.comment_count} comments</p>
             </div>
