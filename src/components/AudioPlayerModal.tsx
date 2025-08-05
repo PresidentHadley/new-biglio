@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase';
 import { 
   FaPlay, 
@@ -203,13 +204,21 @@ export function AudioPlayerModal({ book, isOpen, onClose }: AudioPlayerModalProp
         {/* Mobile-First Header */}
         <div className="flex justify-between items-center p-4 md:p-6 border-b border-gray-200">
           <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
-            {book.cover_url && (
-              <img 
-                src={book.cover_url} 
-                alt={book.title}
-                className="w-12 h-12 md:w-16 md:h-16 rounded-lg object-cover flex-shrink-0"
-              />
-            )}
+            <div className="w-12 h-12 md:w-16 md:h-16 rounded-lg flex-shrink-0 overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+              {book.cover_url ? (
+                <Image 
+                  src={book.cover_url} 
+                  alt={book.title}
+                  width={64}
+                  height={64}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-white font-bold text-lg md:text-xl">
+                  {book.title.charAt(0).toUpperCase()}
+                </span>
+              )}
+            </div>
             <div className="min-w-0 flex-1">
               <h2 className="text-lg md:text-2xl font-bold text-gray-900 truncate">{book.title}</h2>
               <p className="text-sm md:text-base text-gray-600 truncate">by @{book.channel.handle}</p>

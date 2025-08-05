@@ -111,6 +111,7 @@ export default function Dashboard() {
           genre: bookData.genre,
           target_audience: bookData.target_audience,
           reading_level: bookData.reading_level,
+          cover_url: bookData.cover_url || null,
           channel_id: userChannel.id,
           total_chapters: 0,
           is_published: false

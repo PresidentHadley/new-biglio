@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { FaPlay, FaHeart, FaComment, FaBookmark } from 'react-icons/fa';
 import { useBooks } from '@/hooks/useBooks';
 import { AudioPlayerModal } from '@/components/AudioPlayerModal';
@@ -99,18 +100,41 @@ export default function HomePage() {
 
             {/* Book Cover - Real Data */}
             <div 
-              className="relative aspect-square bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 cursor-pointer hover:scale-105 transition-transform"
+              className="relative aspect-square cursor-pointer hover:scale-105 transition-transform overflow-hidden"
               onClick={() => openBookModal(book)}
             >
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center text-white">
-                  <h3 className="text-2xl font-bold mb-2">{book.title}</h3>
-                  <p className="text-sm opacity-90">{book.total_chapters} chapters</p>
-                  <button className="mt-4 bg-white bg-opacity-20 backdrop-blur-sm rounded-full p-4 hover:bg-opacity-30 transition-all">
-                    <FaPlay className="text-white text-xl ml-1" />
-                  </button>
-                </div>
-              </div>
+              {book.cover_url ? (
+                // Real book cover
+                <>
+                  <Image
+                    src={book.cover_url}
+                    alt={book.title}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                  {/* Dark overlay for better text readability */}
+                  <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                    <button className="bg-white bg-opacity-90 backdrop-blur-sm rounded-full p-4 hover:bg-opacity-100 transition-all shadow-lg">
+                      <FaPlay className="text-gray-900 text-xl ml-1" />
+                    </button>
+                  </div>
+                </>
+              ) : (
+                // Fallback gradient with title
+                <>
+                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center text-white px-4">
+                      <h3 className="text-2xl font-bold mb-2">{book.title}</h3>
+                      <p className="text-sm opacity-90 mb-4">{book.total_chapters} chapters</p>
+                      <button className="bg-white bg-opacity-20 backdrop-blur-sm rounded-full p-4 hover:bg-opacity-30 transition-all">
+                        <FaPlay className="text-white text-xl ml-1" />
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Action Buttons */}

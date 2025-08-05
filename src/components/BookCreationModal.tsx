@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { FaTimes } from 'react-icons/fa';
+import { ImageUpload } from './ImageUpload';
+import { useAuth } from '@/context/AuthContext';
 
 interface BookCreationModalProps {
   isOpen: boolean;
@@ -17,6 +19,7 @@ export interface BookFormData {
   genre: string;
   target_audience: string[];
   reading_level?: string;
+  cover_url?: string;
 }
 
 const GENRES = [
@@ -36,13 +39,16 @@ const TARGET_AUDIENCES = [
 ];
 
 export function BookCreationModal({ isOpen, onClose, onSubmit, isCreating = false }: BookCreationModalProps) {
+  const { user } = useAuth();
+
   const [formData, setFormData] = useState<BookFormData>({
     title: '',
     description: '',
     book_type: '',
     genre: '',
     target_audience: ['adult'], // Default to adult
-    reading_level: 'intermediate'
+    reading_level: 'intermediate',
+    cover_url: ''
   });
 
   const [errors, setErrors] = useState<{[K in keyof BookFormData]?: string | string[]}>({});
@@ -121,6 +127,32 @@ export function BookCreationModal({ isOpen, onClose, onSubmit, isCreating = fals
               placeholder="Enter your book title"
             />
             {errors.title && <p className="text-red-500 text-sm mt-1">{Array.isArray(errors.title) ? errors.title[0] : errors.title}</p>}
+          </div>
+
+          {/* Book Cover */}
+          <div>
+            <label className="block text-sm font-medium text-purple-700 mb-2">
+              Book Cover
+            </label>
+            <p className="text-sm text-gray-600 mb-3">
+              Upload a cover image to make your book stand out on the main feed. You can always add or change this later.
+            </p>
+            <ImageUpload
+              bucket="book-covers"
+              folder={user?.id}
+              currentImageUrl={formData.cover_url}
+              onImageUploaded={(url) => {
+                console.log('📸 Cover image uploaded:', url);
+                setFormData(prev => ({ ...prev, cover_url: url }));
+              }}
+              onImageRemoved={() => {
+                setFormData(prev => ({ ...prev, cover_url: '' }));
+              }}
+              placeholder="Upload book cover"
+              aspectRatio="portrait"
+              maxSizeMB={3}
+              className="w-full max-w-xs mx-auto"
+            />
           </div>
 
           {/* Book Type */}
