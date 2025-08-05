@@ -253,7 +253,17 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
       handlePublishBook(bookId, bookTitle);
     } else {
       const missingCount = totalChapters - chaptersWithAudio.length;
-      alert(`⚠️ This book cannot be published yet.\n\n${missingCount} out of ${totalChapters} chapters still need audio generation.\n\nGenerate audio for all chapters before publishing to the main feed.`);
+      const confirmed = confirm(
+        `⚠️ Audio Generation Incomplete\n\n` +
+        `${missingCount} out of ${totalChapters} chapters don't have audio yet.\n\n` +
+        `• Recommended: Generate audio for all chapters first\n` +
+        `• Or: Publish now and add audio later\n\n` +
+        `Do you want to publish anyway?`
+      );
+      
+      if (confirmed) {
+        handlePublishBook(bookId, bookTitle);
+      }
     }
   };
 
