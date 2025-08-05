@@ -147,16 +147,16 @@ export function AIProvider({ children }: { children: ReactNode }) {
     
     switch (type) {
       case AIPromptType.CHAPTER_IDEA:
-        return `Generate three creative ideas for a new chapter${bookInfo}. Focus on advancing the plot in an interesting way and maintaining consistency with the existing story.${context?.currentChapterContent ? ` Current chapter progress: ${context.currentChapterContent.substring(0, 200)}...` : ''}`;
+        return `Please write the beginning of this chapter${chapterInfo}${bookInfo}. Write exactly 3500 characters of engaging content that starts the chapter. Use the chapter outline as your guide but write full narrative prose. Be creative, engaging, and maintain consistency with the book's style and story. ${context?.currentChapterOutline ? `Chapter outline: ${context.currentChapterOutline}` : ''} Start writing now:`;
         
       case AIPromptType.PLOT_DEVELOPMENT:
-        return `Help me develop the plot further from the current point${bookInfo}${chapterInfo}. What interesting complications, twists, or character developments could I introduce? Consider the story's current direction and momentum.`;
+        return `Continue writing this chapter${chapterInfo}${bookInfo} from where it left off. Write exactly 3500 characters that continue the story naturally from the existing content. Maintain the same writing style and advance the plot meaningfully. ${context?.currentChapterContent ? `Existing content: ${context.currentChapterContent}` : ''} Continue writing now:`;
         
       case AIPromptType.CHARACTER_DEVELOPMENT:
         return `Suggest ways to develop character arcs${chapterInfo}${bookInfo}. How can I show growth, change, or reveal new aspects of the characters? Focus on authentic character moments and development.`;
         
       case AIPromptType.STYLE_IMPROVEMENT:
-        return `Please analyze my writing style${chapterInfo}${bookInfo} and suggest improvements for clarity, engagement, and flow. Look at sentence structure, pacing, dialogue, and descriptive language.`;
+        return `Please rewrite and improve this entire chapter${chapterInfo}${bookInfo}. Take the existing content and make it better - improve clarity, engagement, flow, dialogue, and descriptive language. Maintain the same story events but enhance the writing quality. Keep it around the same length but make every sentence more impactful. ${context?.currentChapterContent ? `Current chapter content: ${context.currentChapterContent}` : ''} Improved version:`;
         
       case AIPromptType.GENERAL:
       default:

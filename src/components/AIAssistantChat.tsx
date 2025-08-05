@@ -52,7 +52,7 @@ interface AIAssistantChatProps {
   chapters?: Chapter[];
   mode?: 'outline' | 'write';
   onContentSuggestion?: (content: string) => void;
-  onInsertContent?: (content: string) => void;
+  onInsertContent?: (content: string, actionType?: 'start' | 'continue' | 'improve') => void;
   className?: string;
 }
 
@@ -120,14 +120,14 @@ export function AIAssistantChat({
           type: AIPromptType.CHAPTER_IDEA, 
           icon: FaLightbulb, 
           text: "Start Writing", 
-          description: "Get help starting this chapter",
+          description: "Write 3500 characters to begin this chapter",
           color: "text-yellow-600 bg-yellow-50 hover:bg-yellow-100"
         },
         { 
           type: AIPromptType.PLOT_DEVELOPMENT, 
           icon: FaMagic, 
           text: "Continue Story", 
-          description: "What happens next in the story",
+          description: "Continue writing 3500 more characters",
           color: "text-purple-600 bg-purple-50 hover:bg-purple-100"
         },
         { 
@@ -141,7 +141,7 @@ export function AIAssistantChat({
           type: AIPromptType.STYLE_IMPROVEMENT, 
           icon: FaEdit, 
           text: "Improve Writing", 
-          description: "Enhance style and flow",
+          description: "Rewrite and enhance the entire chapter",
           color: "text-green-600 bg-green-50 hover:bg-green-100"
         }
       ];
@@ -207,10 +207,10 @@ What would you like to plan or research?`;
 Ready to write "${currentChapter.title}" in "${book.title}".
 
 I can help you:
-• **Start Writing** - Get the chapter flowing
-• **Continue Story** - What happens next
-• **Character Scenes** - Develop characters
-• **Improve Writing** - Enhance style and flow
+• **Start Writing** - Generate 3500 characters to begin this chapter
+• **Continue Story** - Add 3500 more characters from where you left off  
+• **Character Scenes** - Develop characters (suggestions)
+• **Improve Writing** - Rewrite entire chapter with better style
 
 **Context: ${contextMode.charAt(0).toUpperCase() + contextMode.slice(1)} Mode**
 
@@ -334,10 +334,75 @@ Let's create something amazing!`;
     }
   };
 
-  const handlePromptType = (type: AIPromptType) => {
+  const handlePromptType = async (type: AIPromptType) => {
     const context = buildContext();
     const prompt = generatePrompt(type, context);
-    sendMessage(prompt);
+    
+    // For writing actions, generate content and auto-insert instead of showing in chat
+    const isWritingAction = type === AIPromptType.CHAPTER_IDEA || 
+                           type === AIPromptType.PLOT_DEVELOPMENT || 
+                           type === AIPromptType.STYLE_IMPROVEMENT;
+    
+    if (isWritingAction && onInsertContent) {
+      try {
+        // Show user message in chat for context
+        const userMessage: ChatMessage = {
+          id: `user-${Date.now()}`,
+          role: 'user',
+          content: getWritingActionLabel(type),
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, userMessage]);
+
+        // Generate content
+        const conversationId = book && currentChapter ? 
+          `${book.id}-${currentChapter.id}` : 
+          book?.id || 'general';
+
+        const response = await sendAIMessage(prompt, context, conversationId);
+
+        // Auto-insert the generated content with action type
+        const actionType = type === AIPromptType.CHAPTER_IDEA ? 'start' :
+                          type === AIPromptType.PLOT_DEVELOPMENT ? 'continue' :
+                          type === AIPromptType.STYLE_IMPROVEMENT ? 'improve' : undefined;
+        onInsertContent(response, actionType);
+
+        // Show confirmation message in chat
+        const confirmMessage: ChatMessage = {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          content: `✅ Content generated and inserted! I've added ${response.length} characters to your chapter.`,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, confirmMessage]);
+
+      } catch (error) {
+        console.error('Error generating content:', error);
+        const errorMessage: ChatMessage = {
+          id: `error-${Date.now()}`,
+          role: 'assistant',
+          content: 'Sorry, I encountered an error generating content. Please try again.',
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      }
+    } else {
+      // For non-writing actions, use regular chat flow
+      sendMessage(prompt);
+    }
+  };
+
+  const getWritingActionLabel = (type: AIPromptType): string => {
+    switch (type) {
+      case AIPromptType.CHAPTER_IDEA:
+        return "🖋️ Start Writing";
+      case AIPromptType.PLOT_DEVELOPMENT:
+        return "📝 Continue Story";
+      case AIPromptType.STYLE_IMPROVEMENT:
+        return "✨ Improve Writing";
+      default:
+        return "💭 AI Assistance";
+    }
   };
 
   const handleContextModeChange = (mode: AIContextMode) => {

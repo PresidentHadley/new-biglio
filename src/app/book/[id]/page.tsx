@@ -1351,12 +1351,27 @@ The more detail you provide, the better the AI can assist with writing!"
                   }
                 }
               }}
-              onInsertContent={(content) => {
+              onInsertContent={(content, actionType) => {
                 if (selectedChapter) {
                   if (mode === 'write') {
-                    setEditContent(prev => prev + '\n\n' + content);
+                    if (actionType === 'improve') {
+                      // Replace entire content for improvement
+                      setEditContent(content);
+                    } else if (actionType === 'start') {
+                      // For start writing, add at beginning if empty, otherwise add at current position
+                      setEditContent(prev => prev.trim() === '' ? content : prev + '\n\n' + content);
+                    } else {
+                      // Continue and other actions append to existing content
+                      setEditContent(prev => prev + '\n\n' + content);
+                    }
                   } else if (mode === 'outline') {
-                    setEditOutlineContent(prev => prev + '\n\n' + content);
+                    if (actionType === 'improve') {
+                      // Replace entire outline content for improvement
+                      setEditOutlineContent(content);
+                    } else {
+                      // Add to outline content
+                      setEditOutlineContent(prev => prev + '\n\n' + content);
+                    }
                   }
                 }
               }}
