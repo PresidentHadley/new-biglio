@@ -8,7 +8,7 @@ import { useAI } from '@/context/AIContext';
 import { AuthModal } from '@/components/AuthModal';
 import { AudioGenerationButton } from '@/components/AudioGenerationButton';
 import { AIAssistantChat } from '@/components/AIAssistantChat';
-import { PublicationWorkflow } from '@/components/PublicationWorkflow';
+
 import Link from 'next/link';
 
 
@@ -932,20 +932,7 @@ export default function UnifiedBookEditor() {
                   )}
               </div>
 
-              {/* Publication Workflow - Only show when chapters exist */}
-              {chapters.length > 0 && (
-                <div className="p-4 border-t border-gray-200">
-                  <PublicationWorkflow
-                    bookId={bookId}
-                    currentStatus={book.is_published ? 'published' : 'draft'}
-                    onStatusChange={(newStatus) => {
-                      if (newStatus === 'published') {
-                        setBook(prev => prev ? { ...prev, is_published: true } : null);
-                      }
-                    }}
-                  />
-                </div>
-              )}
+
 
               {/* AI Outline Generation */}
               {chapters.length < 10 && (

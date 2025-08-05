@@ -11,7 +11,9 @@ import {
   FaBook,
   FaClock,
   FaHeadphones,
-  FaEllipsisV
+  FaEllipsisV,
+  FaRocket,
+  FaCheck
 } from 'react-icons/fa';
 
 interface Book {
@@ -48,6 +50,7 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
   const [bookChapters, setBookChapters] = useState<Record<string, Chapter[]>>({});
   const [loadingChapters, setLoadingChapters] = useState<Record<string, boolean>>({});
   const [playbackSpeed, setPlaybackSpeed] = useState<Record<string, number>>({});
+  const [publishingBooks, setPublishingBooks] = useState<Record<string, boolean>>({});
   
   const audioRef = useRef<HTMLAudioElement>(null);
   const supabase = createClient();
@@ -191,6 +194,54 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
     });
   };
 
+  // Check if a book is ready to publish (all chapters have audio)
+  const isBookReadyToPublish = (bookId: string) => {
+    const chapters = bookChapters[bookId];
+    if (!chapters || chapters.length === 0) return false;
+    return chapters.every(ch => ch.audio_url && ch.audio_url.trim() !== '');
+  };
+
+  // Handle publishing a book to the main feed
+  const handlePublishBook = async (bookId: string, bookTitle: string) => {
+    if (!isOwner || publishingBooks[bookId]) return;
+    
+    setPublishingBooks(prev => ({ ...prev, [bookId]: true }));
+    
+    try {
+      console.log('🚀 Publishing book to main feed...', bookId);
+      
+      const publishedAt = new Date().toISOString();
+      const { data, error } = await supabase
+        .from('biglios')
+        .update({
+          is_published: true,
+          published_at: publishedAt
+        })
+        .eq('id', bookId)
+        .select();
+
+      if (error) {
+        console.error('❌ Error publishing book:', error);
+        alert('Failed to publish book. Please try again.');
+        return;
+      }
+
+      console.log('✅ Book published successfully:', data);
+      
+      // Show success message
+      alert(`🎉 Success! "${bookTitle}" is now live on the main feed!\n\nPublished at: ${new Date(publishedAt).toLocaleString()}`);
+      
+      // Trigger a page refresh or update the books list
+      window.location.reload();
+      
+    } catch (err) {
+      console.error('❌ Error publishing book:', err);
+      alert('An unexpected error occurred. Please try again.');
+    } finally {
+      setPublishingBooks(prev => ({ ...prev, [bookId]: false }));
+    }
+  };
+
   if (books.length === 0) {
     return (
       <div className="text-center py-16">
@@ -314,23 +365,67 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
                       )}
                     </div>
 
-                    {/* Expand Button */}
-                    <button
-                      onClick={() => toggleBookExpansion(book.id)}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors text-sm font-medium"
-                    >
-                      {expandedBooks[book.id] ? (
-                        <>
-                          <FaChevronDown className="text-xs" />
-                          <span>Hide Chapters</span>
-                        </>
-                      ) : (
-                        <>
-                          <FaChevronRight className="text-xs" />
-                          <span>Show Chapters ({book.chapter_count})</span>
-                        </>
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-3">
+                      {/* Publish Button - Only show for owner and unpublished books */}
+                      {isOwner && !book.is_published && (
+                        <button
+                          onClick={() => {
+                            // Load chapters first if not loaded, then check readiness
+                            if (!bookChapters[book.id]) {
+                              toggleBookExpansion(book.id);
+                            }
+                            setTimeout(() => {
+                              if (isBookReadyToPublish(book.id)) {
+                                handlePublishBook(book.id, book.title);
+                              } else {
+                                alert('⚠️ This book cannot be published yet.\n\nAll chapters need audio generation completed before publishing to the main feed.');
+                              }
+                            }, 100);
+                          }}
+                          disabled={publishingBooks[book.id]}
+                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {publishingBooks[book.id] ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                              <span>Publishing...</span>
+                            </>
+                          ) : (
+                            <>
+                              <FaRocket className="text-xs" />
+                              <span>Publish</span>
+                            </>
+                          )}
+                        </button>
                       )}
-                    </button>
+
+                      {/* Published Status Badge */}
+                      {book.is_published && (
+                        <div className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                          <FaCheck className="text-xs" />
+                          <span>Published</span>
+                        </div>
+                      )}
+
+                      {/* Expand Button */}
+                      <button
+                        onClick={() => toggleBookExpansion(book.id)}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors text-sm font-medium"
+                      >
+                        {expandedBooks[book.id] ? (
+                          <>
+                            <FaChevronDown className="text-xs" />
+                            <span>Hide Chapters</span>
+                          </>
+                        ) : (
+                          <>
+                            <FaChevronRight className="text-xs" />
+                            <span>Show Chapters ({book.chapter_count})</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
