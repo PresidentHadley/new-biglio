@@ -71,18 +71,30 @@ export function AudioPlayerModal({ book, isOpen, onClose }: AudioPlayerModalProp
         .from('chapters')
         .select('*')
         .eq('biglio_id', book.id)
-        .eq('is_published', true)
         .order('chapter_number', { ascending: true });
 
       if (error) throw error;
 
-      setChapters((data as unknown as Chapter[]) || []);
+      const chapters = (data as unknown as Chapter[]) || [];
+      setChapters(chapters);
+      
+      console.log(`🎵 AudioPlayerModal: Loaded ${chapters.length} chapters for "${book.title}"`);
+      console.log('📋 Chapter details:', chapters.map(ch => ({
+        id: ch.id,
+        title: ch.title,
+        number: ch.chapter_number,
+        hasAudio: !!ch.audio_url,
+        audioUrl: ch.audio_url,
+        duration: ch.duration_seconds
+      })));
       
       // Auto-select first chapter with audio
-      const chapters = data as unknown as Chapter[];
       const firstChapterWithAudio = chapters?.find(ch => ch.audio_url);
       if (firstChapterWithAudio) {
+        console.log('🎯 Auto-selecting first chapter with audio:', firstChapterWithAudio.title);
         setCurrentChapter(firstChapterWithAudio);
+      } else {
+        console.log('⚠️ No chapters with audio found');
       }
     } catch (error) {
       console.error('Error fetching chapters:', error);

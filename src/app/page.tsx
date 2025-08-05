@@ -30,6 +30,12 @@ export default function HomePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const openBookModal = (book: Book) => {
+    console.log('🎵 Opening audio player for book:', {
+      id: book.id,
+      title: book.title,
+      total_chapters: book.total_chapters,
+      channel: book.channel.handle
+    });
     setSelectedBook(book);
     setIsModalOpen(true);
   };
