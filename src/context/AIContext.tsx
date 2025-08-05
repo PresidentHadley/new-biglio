@@ -207,27 +207,33 @@ export function AIProvider({ children }: { children: ReactNode }) {
       contextualMessage += `\n`;
     }
 
-    // Add current chapter context
+    // Add current chapter context (mode-aware)
     if (context.currentChapterTitle) {
       contextualMessage += `Currently working on: "${context.currentChapterTitle}"`;
       if (context.currentChapterNumber) {
         contextualMessage += ` (Chapter ${context.currentChapterNumber})`;
       }
       
-      // Show outline content for context (what this chapter should cover)
-      if (context.currentChapterOutline) {
-        contextualMessage += `\n\nChapter outline/plan: "${context.currentChapterOutline}"`;
-      }
-      
-      // Show current written content if any
+      // MODE-AWARE CONTEXT BUILDING
       if (context.currentChapterContent) {
+        // WRITE MODE: User is actively writing, show written content
         const preview = context.currentChapterContent.substring(0, 500);
-        contextualMessage += `\n\nCurrent chapter content: "${preview}${context.currentChapterContent.length > 500 ? '...' : ''}"`;
+        contextualMessage += `\n\n📝 Current chapter content: "${preview}${context.currentChapterContent.length > 500 ? '...' : ''}"`;
+        
+        // Show outline as background reference in write mode
+        if (context.currentChapterOutline) {
+          contextualMessage += `\n\n📋 Chapter plan (for reference): "${context.currentChapterOutline}"`;
+        }
+        
+        if (context.wordCount) {
+          contextualMessage += `\n\nWord count: ${context.wordCount}`;
+        }
+      } else if (context.currentChapterOutline) {
+        // OUTLINE MODE: User is planning, show outline content prominently
+        contextualMessage += `\n\n📋 Chapter outline/plan: "${context.currentChapterOutline}"`;
+        contextualMessage += `\n\n💡 Focus: Help with planning, outlining, and research for this chapter.`;
       }
       
-      if (context.wordCount) {
-        contextualMessage += `\n\nWord count: ${context.wordCount}`;
-      }
       contextualMessage += `\n\n`;
     }
     

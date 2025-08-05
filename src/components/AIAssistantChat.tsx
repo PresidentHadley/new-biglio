@@ -244,21 +244,42 @@ Let's create something amazing!`;
       .map(ch => ch.summary)
       .filter(Boolean) as string[];
 
-    return {
-      bookTitle: book?.title || '',
-      bookDescription: book?.description || '',
-      bookType: book?.book_type,
-      genre: book?.genre,
-      targetAudience: book?.target_audience,
-      readingLevel: book?.reading_level,
-      currentChapterTitle: currentChapter?.title || '',
-      currentChapterNumber: currentChapter?.chapter_number || 0,
-      currentChapterContent: currentChapter?.content || '',
-      currentChapterOutline: currentChapter?.outline_content || '',
-      chapterSummaries: chapterSummaries,
-      wordCount: currentChapter?.content?.length || 0,
-      totalChapters: book?.total_chapters || 0
-    };
+    // MODE-AWARE CONTEXT: Different content based on current mode
+    if (mode === 'outline') {
+      // OUTLINE MODE: Focus on planning, show outline content but NOT written content
+      return {
+        bookTitle: book?.title || '',
+        bookDescription: book?.description || '',
+        bookType: book?.book_type,
+        genre: book?.genre,
+        targetAudience: book?.target_audience,
+        readingLevel: book?.reading_level,
+        currentChapterTitle: currentChapter?.title || '',
+        currentChapterNumber: currentChapter?.chapter_number || 0,
+        currentChapterContent: '', // Don't show written content in outline mode
+        currentChapterOutline: currentChapter?.outline_content || '',
+        chapterSummaries: chapterSummaries,
+        wordCount: 0, // Don't count written words in outline mode
+        totalChapters: book?.total_chapters || 0
+      };
+    } else {
+      // WRITE MODE: Focus on writing, show written content and outline as background
+      return {
+        bookTitle: book?.title || '',
+        bookDescription: book?.description || '',
+        bookType: book?.book_type,
+        genre: book?.genre,
+        targetAudience: book?.target_audience,
+        readingLevel: book?.reading_level,
+        currentChapterTitle: currentChapter?.title || '',
+        currentChapterNumber: currentChapter?.chapter_number || 0,
+        currentChapterContent: currentChapter?.content || '',
+        currentChapterOutline: currentChapter?.outline_content || '', // Keep outline as reference
+        chapterSummaries: chapterSummaries,
+        wordCount: currentChapter?.content?.length || 0,
+        totalChapters: book?.total_chapters || 0
+      };
+    }
   };
 
   const sendMessage = async (content: string) => {
