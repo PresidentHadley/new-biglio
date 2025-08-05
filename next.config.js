@@ -10,8 +10,8 @@ const nextConfig = {
   images: {
     domains: [
       'localhost',
-      // Add your Supabase storage domain here
-      // 'your-project.supabase.co',
+      'hdvadrswlzmjtlfkdewu.supabase.co', // Your Supabase storage domain
+      'images.unsplash.com', // For stock images
     ],
   },
   env: {
