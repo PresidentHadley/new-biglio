@@ -271,6 +271,11 @@ const SmartContactWidget = () => {
     }));
   };
 
+  // Hide on main feed page
+  if (typeof window !== 'undefined' && window.location.pathname === '/') {
+    return null;
+  }
+
   if (!isOpen) {
     return (
       <div className="smart-contact-trigger" onClick={() => setIsOpen(true)}>
