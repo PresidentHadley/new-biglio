@@ -3,10 +3,13 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { FaPlay, FaHeart, FaComment, FaBookmark, FaUser } from 'react-icons/fa';
+import { FaPlay, FaUser } from 'react-icons/fa';
 import { useBooks } from '@/hooks/useBooks';
 import { AudioPlayerModal } from '@/components/AudioPlayerModal';
 import { DebugMainFeed } from '@/components/DebugMainFeed';
+import SocialActions from '@/components/SocialActions';
+
+import FollowButton from '@/components/FollowButton';
 
 interface Book {
   id: string;
@@ -19,9 +22,12 @@ interface Book {
   save_count: number;
   published_at: string;
   channel: {
+    id: string;
+    user_id: string;
     handle: string;
     display_name: string;
     avatar_url?: string;
+    follower_count: number;
   };
 }
 
@@ -165,25 +171,26 @@ export default function HomePage() {
                   <p className="text-gray-400 text-xs">@{book.channel.handle}</p>
                 </div>
               </Link>
-              <div className="text-right">
-                <p className="text-white text-xs">{book.total_chapters} chapters</p>
-                <p className="text-gray-400 text-xs">{new Date(book.published_at).toLocaleDateString()}</p>
+              <div className="flex items-center gap-3">
+                <FollowButton 
+                  channel={book.channel}
+                  size="sm"
+                  variant="button"
+                />
+                <div className="text-right">
+                  <p className="text-white text-xs">{book.total_chapters} chapters</p>
+                  <p className="text-gray-400 text-xs">{new Date(book.published_at).toLocaleDateString()}</p>
+                </div>
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center justify-between px-4 py-3">
-              <div className="flex space-x-4">
-                <button className="text-white hover:text-red-500 transition-colors">
-                  <FaHeart size={24} />
-                </button>
-                <button className="text-white hover:text-blue-500 transition-colors">
-                  <FaComment size={24} />
-                </button>
-              </div>
-              <button className="text-white hover:text-yellow-500 transition-colors">
-                <FaBookmark size={24} />
-              </button>
+            {/* Social Actions */}
+            <div className="px-4 py-3">
+              <SocialActions 
+                book={book} 
+                size="lg"
+                className="text-white"
+              />
             </div>
 
             {/* Engagement Info - Real Data */}

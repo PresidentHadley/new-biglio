@@ -14,9 +14,12 @@ interface Book {
   save_count: number;
   published_at: string;
   channel: {
+    id: string;
+    user_id: string;
     handle: string;
     display_name: string;
     avatar_url?: string;
+    follower_count: number;
   };
 }
 
@@ -101,7 +104,7 @@ export function useBooks() {
       // Fetch channel data separately
       const { data: channelsData, error: channelsError } = await supabase
         .from('channels')
-        .select('id, handle, display_name, avatar_url')
+        .select('id, user_id, handle, display_name, avatar_url, follower_count')
         .in('id', channelIds);
 
       if (channelsError) throw channelsError;
@@ -123,9 +126,12 @@ export function useBooks() {
           save_count: book.save_count,
           published_at: book.published_at,
           channel: {
+            id: channel?.id || '',
+            user_id: channel?.user_id || '',
             handle: channel?.handle ? String(channel.handle) : 'unknown',
             display_name: channel?.display_name ? String(channel.display_name) : 'Unknown Channel',
-            avatar_url: channel?.avatar_url
+            avatar_url: channel?.avatar_url,
+            follower_count: channel?.follower_count || 0
           }
         };
       }) || [];

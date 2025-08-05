@@ -9,12 +9,13 @@ import {
   FaForward, 
   FaBackward, 
   FaVolumeUp, 
-  FaHeart, 
-  FaComment, 
-  FaBookmark, 
+ 
   FaTimes,
   FaList
 } from 'react-icons/fa';
+import SocialActions from '@/components/SocialActions';
+import Comments from '@/components/Comments';
+import FollowButton from '@/components/FollowButton';
 
 interface Book {
   id: string;
@@ -26,9 +27,12 @@ interface Book {
   comment_count: number;
   save_count: number;
   channel: {
+    id: string;
+    user_id: string;
     handle: string;
     display_name: string;
     avatar_url?: string;
+    follower_count: number;
   };
 }
 
@@ -56,6 +60,7 @@ export function AudioPlayerModal({ book, isOpen, onClose }: AudioPlayerModalProp
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [showChapterList, setShowChapterList] = useState(false);
+  const [showComments, setShowComments] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -221,7 +226,10 @@ export function AudioPlayerModal({ book, isOpen, onClose }: AudioPlayerModalProp
             </div>
             <div className="min-w-0 flex-1">
               <h2 className="text-lg md:text-2xl font-bold text-gray-900 truncate">{book.title}</h2>
-              <p className="text-sm md:text-base text-gray-600 truncate">by @{book.channel.handle}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm md:text-base text-gray-600 truncate">by @{book.channel.handle}</p>
+                <FollowButton channel={book.channel} size="sm" />
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -327,37 +335,23 @@ export function AudioPlayerModal({ book, isOpen, onClose }: AudioPlayerModalProp
               </div>
             </div>
 
-            {/* Mobile-Optimized Social Actions */}
-            <div className="flex items-center justify-center gap-4 md:gap-6 mb-4 md:mb-6">
-              <button
-                onClick={toggleLike}
-                className={`flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-lg transition-colors text-sm md:text-base ${
-                  isLiked 
-                    ? 'bg-red-100 text-red-600' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                <FaHeart className="w-4 h-4 md:w-4 md:h-4" />
-                <span>{book.like_count + (isLiked ? 1 : 0)}</span>
-              </button>
-              
-              <button className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 text-sm md:text-base">
-                <FaComment className="w-4 h-4 md:w-4 md:h-4" />
-                <span>{book.comment_count}</span>
-              </button>
-              
-              <button
-                onClick={toggleSave}
-                className={`flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-lg transition-colors text-sm md:text-base ${
-                  isSaved 
-                    ? 'bg-yellow-100 text-yellow-600' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                <FaBookmark className="w-4 h-4 md:w-4 md:h-4" />
-                <span>{book.save_count + (isSaved ? 1 : 0)}</span>
-              </button>
+            {/* Social Actions */}
+            <div className="mb-4 md:mb-6">
+              <SocialActions 
+                book={book}
+                onCommentClick={() => setShowComments(!showComments)}
+                size="md"
+                className="justify-center"
+              />
             </div>
+
+            {/* Comments Section */}
+            {showComments && (
+              <div className="border-t border-gray-200 pt-4 mb-4">
+                <h3 className="font-semibold text-lg mb-4">Comments</h3>
+                <Comments book={book} />
+              </div>
+            )}
 
             {/* No Audio Message */}
             {!currentChapter?.audio_url && (
