@@ -43,11 +43,8 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
         
         if (error) throw error;
         
-        setMessage('Account created! Check your email for confirmation.');
-        // For now, let them continue. In production, you'd wait for email confirmation
-        setTimeout(() => {
-          onSuccess();
-        }, 2000);
+        setMessage('Account created! Please check your email and click the confirmation link to complete signup.');
+        // Don't auto-redirect - user must confirm email first
       }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'An error occurred');
