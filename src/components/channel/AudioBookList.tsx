@@ -201,6 +201,62 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
     return chapters.every(ch => ch.audio_url && ch.audio_url.trim() !== '');
   };
 
+  // Check if book is ready to publish by loading chapters if needed
+  const checkBookReadinessAndPublish = async (bookId: string, bookTitle: string) => {
+    let chapters = bookChapters[bookId];
+    
+    // If chapters not loaded, fetch them directly
+    if (!chapters || chapters.length === 0) {
+      console.log('📚 Loading chapters to check readiness...', bookId);
+      try {
+        const { data, error } = await supabase
+          .from('chapters')
+          .select('id, title, content, chapter_number, audio_url, duration_seconds, is_published')
+          .eq('biglio_id', bookId)
+          .order('chapter_number', { ascending: true });
+
+        if (error) {
+          console.error('❌ Error loading chapters for publish check:', error);
+          alert('Failed to load chapters. Please try again.');
+          return;
+        }
+
+        chapters = (data as Chapter[]) || [];
+        
+        // Update local state
+        setBookChapters(prev => ({
+          ...prev,
+          [bookId]: chapters || []
+        }));
+
+        console.log(`📋 Loaded ${chapters?.length || 0} chapters for readiness check`);
+      } catch (err) {
+        console.error('❌ Error fetching chapters:', err);
+        alert('Failed to load chapters. Please try again.');
+        return;
+      }
+    }
+
+    // Now check if all chapters have audio
+    if (!chapters || chapters.length === 0) {
+      alert('⚠️ This book has no chapters yet.\n\nAdd some chapters with content and generate audio before publishing.');
+      return;
+    }
+
+    const chaptersWithAudio = chapters.filter(ch => ch.audio_url && ch.audio_url.trim() !== '');
+    const totalChapters = chapters.length;
+
+    console.log(`🎵 Audio check: ${chaptersWithAudio.length}/${totalChapters} chapters have audio`);
+
+    if (chaptersWithAudio.length === totalChapters) {
+      // All good, proceed with publishing
+      handlePublishBook(bookId, bookTitle);
+    } else {
+      const missingCount = totalChapters - chaptersWithAudio.length;
+      alert(`⚠️ This book cannot be published yet.\n\n${missingCount} out of ${totalChapters} chapters still need audio generation.\n\nGenerate audio for all chapters before publishing to the main feed.`);
+    }
+  };
+
   // Handle publishing a book to the main feed
   const handlePublishBook = async (bookId: string, bookTitle: string) => {
     if (!isOwner || publishingBooks[bookId]) return;
@@ -371,17 +427,7 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
                       {isOwner && !book.is_published && (
                         <button
                           onClick={() => {
-                            // Load chapters first if not loaded, then check readiness
-                            if (!bookChapters[book.id]) {
-                              toggleBookExpansion(book.id);
-                            }
-                            setTimeout(() => {
-                              if (isBookReadyToPublish(book.id)) {
-                                handlePublishBook(book.id, book.title);
-                              } else {
-                                alert('⚠️ This book cannot be published yet.\n\nAll chapters need audio generation completed before publishing to the main feed.');
-                              }
-                            }, 100);
+                            checkBookReadinessAndPublish(book.id, book.title);
                           }}
                           disabled={publishingBooks[book.id]}
                           className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
