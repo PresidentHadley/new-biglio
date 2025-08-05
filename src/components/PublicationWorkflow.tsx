@@ -52,19 +52,43 @@ export function PublicationWorkflow({ bookId, currentStatus, onStatusChange }: P
 
     setPublishing(true);
     try {
-      const { error } = await supabase
+      console.log('🚀 Publishing book to main feed...', bookId);
+      
+      const publishedAt = new Date().toISOString();
+      const { data, error } = await supabase
         .from('biglios')
         .update({
           is_published: true,
-          published_at: new Date().toISOString()
+          published_at: publishedAt
         })
-        .eq('id', bookId);
+        .eq('id', bookId)
+        .select();
 
-      if (!error) {
-        onStatusChange('published');
+      if (error) {
+        console.error('❌ Error publishing book:', error);
+        alert('Failed to publish book. Please try again.');
+        return;
       }
+
+      console.log('✅ Book published successfully:', data);
+      
+      // Verify the book is actually published
+      const { data: verifyData } = await supabase
+        .from('biglios')
+        .select('id, title, is_published, published_at')
+        .eq('id', bookId)
+        .single();
+        
+      console.log('🔍 Verification - Book status after publish:', verifyData);
+      
+      onStatusChange('published');
+      
+      // Show success message
+      alert(`🎉 Success! Your book is now live on the main feed!\n\nPublished at: ${new Date(publishedAt).toLocaleString()}`);
+      
     } catch (err) {
-      console.error('Error publishing book:', err);
+      console.error('❌ Error publishing book:', err);
+      alert('An unexpected error occurred. Please try again.');
     } finally {
       setPublishing(false);
     }

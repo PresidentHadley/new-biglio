@@ -51,6 +51,7 @@ export function useBooks() {
   const fetchBooks = useCallback(async () => {
     try {
       setLoading(true);
+      console.log('📚 Fetching published books for main feed...');
       
       // First, get biglios data
       const { data: bigliosData, error: bigliosError } = await supabase
@@ -65,17 +66,34 @@ export function useBooks() {
           comment_count,
           save_count,
           published_at,
-          channel_id
+          channel_id,
+          is_published
         `)
         .eq('is_published', true)
         .order('published_at', { ascending: false });
 
-      if (bigliosError) throw bigliosError;
+      console.log('🔍 Supabase query result:', {
+        data: bigliosData,
+        error: bigliosError,
+        count: bigliosData?.length || 0
+      });
+
+      if (bigliosError) {
+        console.error('❌ Error fetching books:', bigliosError);
+        throw bigliosError;
+      }
 
       if (!bigliosData || bigliosData.length === 0) {
+        console.log('📭 No published books found in database');
         setBooks([]);
+        setError(null); // Clear any previous errors
         return;
       }
+
+      console.log(`✅ Found ${bigliosData.length} published books`);
+      bigliosData.forEach((book, index) => {
+        console.log(`📖 ${index + 1}. "${book.title}" - Published: ${book.published_at}`);
+      });
 
       // Get unique channel IDs
       const channelIds = [...new Set(bigliosData.map(book => book.channel_id))];
@@ -113,9 +131,12 @@ export function useBooks() {
       }) || [];
 
       setBooks(transformedBooks as Book[]);
+      console.log(`🎉 Main feed updated with ${transformedBooks.length} published books`);
+      setError(null); // Clear any previous errors on success
     } catch (err) {
-      console.error('Error fetching books:', err);
+      console.error('❌ Error fetching books:', err);
       setError('Failed to load books');
+      setBooks([]); // Clear books on error
     } finally {
       setLoading(false);
     }

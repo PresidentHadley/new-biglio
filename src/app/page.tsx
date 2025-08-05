@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { FaPlay, FaHeart, FaComment, FaBookmark } from 'react-icons/fa';
 import { useBooks } from '@/hooks/useBooks';
 import { AudioPlayerModal } from '@/components/AudioPlayerModal';
+import { DebugMainFeed } from '@/components/DebugMainFeed';
 // Removed unused Link import
 
 interface Book {
@@ -51,6 +52,11 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-black pt-16">
       {/* Content now uses the fixed modern navbar from layout */}
+
+      {/* Debug Tool (Temporary) */}
+      <div className="max-w-4xl mx-auto p-4">
+        <DebugMainFeed />
+      </div>
 
       {/* Instagram-style Feed */}
       <main className="max-w-md mx-auto">
