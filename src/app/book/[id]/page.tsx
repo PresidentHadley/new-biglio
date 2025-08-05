@@ -73,6 +73,7 @@ export default function UnifiedBookEditor() {
   // AI state
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGeneratingOutline, setIsGeneratingOutline] = useState(false);
+  const [generatingChapterCount, setGeneratingChapterCount] = useState(1);
 
   // Chapter Edit Modal State
   const [editingChapter, setEditingChapter] = useState<Chapter | null>(null);
@@ -525,12 +526,13 @@ export default function UnifiedBookEditor() {
     }
   }, [editTitle, editContent, editOutlineContent, selectedChapter, mode, debouncedSave, debouncedSaveOutline]);
 
-  const generateAIOutline = async () => {
+  const generateAIOutline = async (chapterCount: number = 5) => {
     if (!book) return;
 
     try {
       setIsGeneratingOutline(true);
-      console.log('🤖 Starting AI outline generation...');
+      setGeneratingChapterCount(chapterCount);
+      console.log(`🤖 Starting AI outline generation for ${chapterCount} chapters...`);
       
       const result = await generateOutline(
         book.title,
@@ -538,7 +540,7 @@ export default function UnifiedBookEditor() {
         {
           genre: book.genre,
           targetAudience: book.target_audience?.join(', '),
-          chapterCount: 10,
+          chapterCount: chapterCount,
           existingOutline: chapters.length > 0 ? chapters.map(ch => ({ title: ch.title, summary: ch.outline_content })) : undefined
         }
       );
@@ -552,9 +554,12 @@ export default function UnifiedBookEditor() {
         console.log(`📚 Creating ${result.length} chapters in database...`);
         
         // Create chapters from AI outline
+        const startingChapterNumber = chapters.length + 1; // Continue from existing chapters
+        
         for (let i = 0; i < result.length; i++) {
           const chapter = result[i];
-          console.log(`📝 Creating chapter ${i + 1}: "${chapter.title}"`);
+          const chapterNumber = startingChapterNumber + i;
+          console.log(`📝 Creating chapter ${chapterNumber}: "${chapter.title}"`);
           
           const insertResult = await supabase
             .from('chapters')
@@ -564,24 +569,25 @@ export default function UnifiedBookEditor() {
               content: '', // Start with empty content for writing mode
               outline_content: `${chapter.summary || ''}\n\nKey Points:\n${chapter.keyPoints ? chapter.keyPoints.map(point => `• ${point}`).join('\n') : ''}`,
               summary: null,
-              chapter_number: i + 1,
+              chapter_number: chapterNumber,
               is_published: false,
               duration_seconds: 0
             });
             
           if (insertResult.error) {
-            console.error(`❌ Error creating chapter ${i + 1}:`, insertResult.error);
+            console.error(`❌ Error creating chapter ${chapterNumber}:`, insertResult.error);
           } else {
-            console.log(`✅ Successfully created chapter ${i + 1}`);
+            console.log(`✅ Successfully created chapter ${chapterNumber}`);
           }
         }
 
-        console.log('📊 Updating book total chapters to:', result.length);
+        const newTotalChapters = chapters.length + result.length;
+        console.log('📊 Updating book total chapters to:', newTotalChapters);
         
         // Update book's total chapters
         await supabase
           .from('biglios')
-          .update({ total_chapters: result.length })
+          .update({ total_chapters: newTotalChapters })
           .eq('id', bookId);
 
         setAiPrompt('');
@@ -932,9 +938,11 @@ export default function UnifiedBookEditor() {
               )}
 
               {/* AI Outline Generation */}
-              {chapters.length === 0 && (
+              {chapters.length < 10 && (
                   <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-                    <h3 className="text-xl font-bold text-gray-900 mb-4">🤖 AI Outline Generation</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">
+                      🤖 {chapters.length === 0 ? 'AI Outline Generation' : 'Add More Chapters'}
+                    </h3>
                     
                     {isGeneratingOutline ? (
                       // Enhanced Loading State
@@ -944,7 +952,7 @@ export default function UnifiedBookEditor() {
                             <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
                           </div>
                           <h4 className="text-lg font-semibold text-purple-900 mb-2">Generating Your Book Outline</h4>
-                          <p className="text-purple-700 mb-4">AI is creating 10 chapters for your book...</p>
+                          <p className="text-purple-700 mb-4">AI is creating {generatingChapterCount} chapter{generatingChapterCount > 1 ? 's' : ''} for your book...</p>
                           <div className="w-full bg-purple-200 rounded-full h-2">
                             <div className="bg-purple-600 h-2 rounded-full animate-pulse" style={{width: '60%'}}></div>
                           </div>
@@ -963,21 +971,85 @@ export default function UnifiedBookEditor() {
                         </div>
                       </div>
                     ) : (
-                      // Regular Generation Form
+                      // Smart Outline Generation (Like Old System)
                       <div className="space-y-4">
-                        <textarea
-                          value={aiPrompt}
-                          onChange={(e) => setAiPrompt(e.target.value)}
-                          placeholder={`Describe what you want in your book outline... (Leave empty for automatic generation based on "${book.title}")`}
-                          className="w-full h-32 p-4 bg-gray-50 text-gray-900 rounded border border-gray-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none resize-none"
-                        />
-                        <button
-                          onClick={generateAIOutline}
-                          className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-                        >
-                          <span>✨</span>
-                          <span>Generate AI Outline (10 Chapters)</span>
-                        </button>
+                        <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
+                          <h4 className="text-lg font-semibold text-purple-900 mb-3">📋 Smart Outline Generation</h4>
+                          
+                          {/* Chapter Generation Options */}
+                          <div className="space-y-3">
+                            <button
+                              onClick={() => generateAIOutline(1)}
+                              className="w-full px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                            >
+                              <span>➕</span>
+                              <span>{chapters.length === 0 ? 'Generate Next Chapter (1)' : 'Add 1 More Chapter'}</span>
+                            </button>
+                            
+                            {(chapters.length + 3) <= 10 && (
+                              <button
+                                onClick={() => generateAIOutline(3)}
+                                className="w-full px-4 py-3 bg-orange-400 hover:bg-orange-500 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                              >
+                                <span>📚</span>
+                                <span>{chapters.length === 0 ? 'Generate 3 Chapters' : 'Add 3 More Chapters'}</span>
+                              </button>
+                            )}
+                            
+                            {(chapters.length + 5) <= 10 && (
+                              <button
+                                onClick={() => generateAIOutline(5)}
+                                className="w-full px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                              >
+                                <span>📖</span>
+                                <span>{chapters.length === 0 ? 'Generate 5 Chapter Outline' : 'Add 5 More Chapters'}</span>
+                              </button>
+                            )}
+                            
+                            {chapters.length === 0 && (
+                              <button
+                                onClick={() => generateAIOutline(10)}
+                                className="w-full px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                              >
+                                <span>📚</span>
+                                <span>Generate Full 10 Chapter Book</span>
+                              </button>
+                            )}
+                            
+                            {chapters.length > 0 && chapters.length < 10 && (
+                              <button
+                                onClick={() => generateAIOutline(10 - chapters.length)}
+                                className="w-full px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                              >
+                                <span>📚</span>
+                                <span>Fill Remaining {10 - chapters.length} Chapters</span>
+                              </button>
+                            )}
+                          </div>
+                          
+                          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
+                            <span className="font-medium">💡 Tip:</span> {chapters.length === 0 ? 
+                              'Start with 1-3 chapters to test your concept, then expand your outline as needed.' :
+                              `You have ${chapters.length} chapter${chapters.length > 1 ? 's' : ''} so far. Add more to continue building your book!`
+                            }
+                          </div>
+                        </div>
+
+                        {/* Optional Custom Instructions */}
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium text-gray-700">
+                            📝 Outline Summary (Optional - helps AI create better chapters)
+                          </label>
+                          <textarea
+                            value={aiPrompt}
+                            onChange={(e) => setAiPrompt(e.target.value)}
+                            placeholder={chapters.length === 0 ? 
+                              `Describe your story concept, themes, or specific ideas you want included... (Leave empty for automatic generation based on "${book?.title}")` :
+                              `Describe what should happen next in your story, or leave empty for AI to continue based on existing chapters...`
+                            }
+                            className="w-full h-24 p-3 bg-gray-50 text-gray-900 rounded border border-gray-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none resize-none text-sm"
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
