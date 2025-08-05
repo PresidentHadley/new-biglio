@@ -1,21 +1,63 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { createClient } from '@/lib/supabase';
 
+interface DebugInfo {
+  totalBooks: number;
+  allBooks: Array<{
+    id: string;
+    title: string;
+    is_published: boolean;
+    published_at: string | null;
+    channel_id: string;
+  }>;
+  publishedBooks: number;
+  publishedBooksList: Array<{
+    id: string;
+    title: string;
+    is_published: boolean;
+    published_at: string | null;
+    channel_id: string;
+  }>;
+  totalChannels: number;
+  channels: Array<{
+    id: string;
+    handle: string;
+    display_name: string;
+  }>;
+  mainFeedBooks: number;
+  mainFeedBooksList: Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    cover_url: string | null;
+    total_chapters: number;
+    like_count: number;
+    comment_count: number;
+    save_count: number;
+    published_at: string | null;
+    channel_id: string;
+  }>;
+  mainFeedError: unknown;
+  chaptersWithAudio: number;
+  audioBooksMap: Record<string, number>;
+  error?: unknown;
+}
+
 export function DebugMainFeed() {
-  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
   const [loading, setLoading] = useState(false);
   
   const supabase = createClient();
 
   const runDebugTest = async () => {
     setLoading(true);
-    const results: any = {};
+    const results: Partial<DebugInfo> = {};
 
     try {
       // 1. Check total biglios count
-      const { data: allBiglios, error: allError } = await supabase
+      const { data: allBiglios } = await supabase
         .from('biglios')
         .select('id, title, is_published, published_at, channel_id')
         .order('created_at', { ascending: false });
@@ -24,7 +66,7 @@ export function DebugMainFeed() {
       results.allBooks = allBiglios || [];
 
       // 2. Check published biglios count
-      const { data: publishedBiglios, error: pubError } = await supabase
+      const { data: publishedBiglios } = await supabase
         .from('biglios')
         .select('id, title, is_published, published_at, channel_id')
         .eq('is_published', true)
@@ -34,7 +76,7 @@ export function DebugMainFeed() {
       results.publishedBooksList = publishedBiglios || [];
 
       // 3. Check channels
-      const { data: channels, error: channelError } = await supabase
+      const { data: channels } = await supabase
         .from('channels')
         .select('id, handle, display_name');
       
@@ -64,13 +106,13 @@ export function DebugMainFeed() {
       results.mainFeedError = mainFeedError;
 
       // 5. Check if any books have audio ready
-      const { data: chaptersData, error: chaptersError } = await supabase
+      const { data: chaptersData } = await supabase
         .from('chapters')
         .select('biglio_id, title, audio_url, audio_status')
         .not('audio_url', 'is', null);
       
       results.chaptersWithAudio = chaptersData?.length || 0;
-      results.audioBooksMap = chaptersData?.reduce((acc: any, ch: any) => {
+      results.audioBooksMap = chaptersData?.reduce((acc: Record<string, number>, ch: { biglio_id: string; title: string; audio_url: string; audio_status: string }) => {
         if (!acc[ch.biglio_id]) acc[ch.biglio_id] = 0;
         acc[ch.biglio_id]++;
         return acc;
@@ -80,7 +122,7 @@ export function DebugMainFeed() {
       results.error = error;
     }
 
-    setDebugInfo(results);
+    setDebugInfo(results as DebugInfo);
     setLoading(false);
   };
 
@@ -132,7 +174,7 @@ export function DebugMainFeed() {
           {debugInfo.publishedBooksList.length > 0 && (
             <div className="space-y-2">
               <div className="font-medium text-gray-900">📋 Published Books Details:</div>
-              {debugInfo.publishedBooksList.map((book: any, index: number) => (
+              {debugInfo.publishedBooksList.map((book, index) => (
                 <div key={book.id} className="p-2 bg-green-50 border border-green-200 rounded text-xs">
                   <div className="font-medium">{index + 1}. {book.title}</div>
                   <div className="text-gray-600">
@@ -149,7 +191,7 @@ export function DebugMainFeed() {
           {debugInfo.allBooks.length > 0 && debugInfo.publishedBooks === 0 && (
             <div className="space-y-2">
               <div className="font-medium text-gray-900">📋 All Books (Draft Status):</div>
-              {debugInfo.allBooks.slice(0, 5).map((book: any, index: number) => (
+              {debugInfo.allBooks.slice(0, 5).map((book, index) => (
                 <div key={book.id} className="p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
                   <div className="font-medium">{index + 1}. {book.title}</div>
                   <div className="text-gray-600">

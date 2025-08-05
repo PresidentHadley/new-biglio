@@ -74,6 +74,7 @@ export default function UnifiedBookEditor() {
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGeneratingOutline, setIsGeneratingOutline] = useState(false);
   const [generatingChapterCount, setGeneratingChapterCount] = useState(1);
+  const [showOutlineSuccess, setShowOutlineSuccess] = useState(false);
 
   // Chapter Edit Modal State
   const [editingChapter, setEditingChapter] = useState<Chapter | null>(null);
@@ -81,6 +82,11 @@ export default function UnifiedBookEditor() {
   const [editModalSummary, setEditModalSummary] = useState('');
 
   const supabase = createClient();
+
+  // Hide success screen when mode changes
+  useEffect(() => {
+    setShowOutlineSuccess(false);
+  }, [mode]);
 
   const fetchBookData = useCallback(async () => {
     try {
@@ -159,6 +165,7 @@ export default function UnifiedBookEditor() {
     setEditTitle(chapter.title);
     setEditContent(chapter.content || '');
     setEditOutlineContent(chapter.outline_content || '');
+    setShowOutlineSuccess(false); // Hide success screen when chapter is selected
   }, []);
 
   // Generate chapter summary for AI context
@@ -593,6 +600,9 @@ export default function UnifiedBookEditor() {
         setAiPrompt('');
         await fetchChapters();
         await fetchBookData();
+        
+        // Show success screen
+        setShowOutlineSuccess(true);
         
         console.log('🎉 AI outline generation completed successfully!');
       } else {
@@ -1123,8 +1133,94 @@ The more detail you provide, the better the AI can assist with writing!"
                 </div>
               )}
 
-              {/* Center Panel - No Chapter Selected */}
-              {!selectedChapter && chapters.length > 0 && (
+              {/* Center Panel - Outline Success Screen */}
+              {showOutlineSuccess && chapters.length > 0 && (
+                <div className="flex-1 flex items-center justify-center bg-gray-50 p-6">
+                  <div className="max-w-2xl w-full">
+                    {/* Success Message */}
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6 text-center">
+                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span className="text-2xl">✅</span>
+                      </div>
+                      <h2 className="text-2xl font-bold text-green-800 mb-2">Great! Your Outline is Ready</h2>
+                      <p className="text-green-700">
+                        You now have {chapters.length} chapter{chapters.length > 1 ? 's' : ''} outlined with AI-generated summaries. Here's what to do next:
+                      </p>
+                    </div>
+
+                    {/* Next Steps */}
+                    <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        📝 Next Steps
+                      </h3>
+                      
+                      <div className="space-y-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
+                            1
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-gray-900">Review Your Chapters</h4>
+                            <p className="text-sm text-gray-600">
+                              Click on each chapter in the left panel to see its summary. Want to make changes? Click the pencil icon (✏️) next to any chapter title.
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
+                            2
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-gray-900">Start Writing</h4>
+                            <p className="text-sm text-gray-600">
+                              When you're ready to start writing, click the button below or switch to <strong>Write Mode</strong> in the top toolbar.
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
+                            3
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-gray-900">Use AI Assistant</h4>
+                            <p className="text-sm text-gray-600">
+                              The AI assistant on the right can help you brainstorm, overcome writer's block, or expand your ideas.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="space-y-3">
+                      <button
+                        onClick={() => {
+                          setMode('write');
+                          setShowOutlineSuccess(false);
+                          if (chapters.length > 0) {
+                            selectChapter(chapters[0]);
+                          }
+                        }}
+                        className="w-full px-6 py-4 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                      >
+                        ▶️ Start Writing Your Book
+                      </button>
+                      
+                      <button
+                        onClick={() => setShowOutlineSuccess(false)}
+                        className="w-full px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+                      >
+                        📋 I'll explore the chapters first
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Center Panel - No Chapter Selected (when not showing success) */}
+              {!selectedChapter && chapters.length > 0 && !showOutlineSuccess && (
                 <div className="flex-1 flex items-center justify-center bg-gray-50">
                   <div className="text-center">
                     <h2 className="text-2xl font-bold text-gray-900 mb-4">📋 Select a Chapter to Edit Outline</h2>
