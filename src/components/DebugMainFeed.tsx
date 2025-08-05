@@ -63,7 +63,13 @@ export function DebugMainFeed() {
         .order('created_at', { ascending: false });
       
       results.totalBooks = allBiglios?.length || 0;
-      results.allBooks = (allBiglios as DebugInfo['allBooks']) || [];
+      results.allBooks = (allBiglios as Array<{
+        id: string;
+        title: string;
+        is_published: boolean;
+        published_at: string | null;
+        channel_id: string;
+      }>) || [];
 
       // 2. Check published biglios count
       const { data: publishedBiglios } = await supabase
@@ -73,7 +79,13 @@ export function DebugMainFeed() {
         .order('published_at', { ascending: false });
       
       results.publishedBooks = publishedBiglios?.length || 0;
-      results.publishedBooksList = (publishedBiglios as DebugInfo['publishedBooksList']) || [];
+      results.publishedBooksList = (publishedBiglios as Array<{
+        id: string;
+        title: string;
+        is_published: boolean;
+        published_at: string | null;
+        channel_id: string;
+      }>) || [];
 
       // 3. Check channels
       const { data: channels } = await supabase
@@ -81,7 +93,11 @@ export function DebugMainFeed() {
         .select('id, handle, display_name');
       
       results.totalChannels = channels?.length || 0;
-      results.channels = (channels as DebugInfo['channels']) || [];
+      results.channels = (channels as Array<{
+        id: string;
+        handle: string;
+        display_name: string;
+      }>) || [];
 
       // 4. Test the main feed query (exactly like useBooks hook)
       const { data: mainFeedBiglios, error: mainFeedError } = await supabase
@@ -102,7 +118,18 @@ export function DebugMainFeed() {
         .order('published_at', { ascending: false });
 
       results.mainFeedBooks = mainFeedBiglios?.length || 0;
-      results.mainFeedBooksList = (mainFeedBiglios as DebugInfo['mainFeedBooksList']) || [];
+      results.mainFeedBooksList = (mainFeedBiglios as Array<{
+        id: string;
+        title: string;
+        description: string | null;
+        cover_url: string | null;
+        total_chapters: number;
+        like_count: number;
+        comment_count: number;
+        save_count: number;
+        published_at: string | null;
+        channel_id: string;
+      }>) || [];
       results.mainFeedError = mainFeedError;
 
       // 5. Check if any books have audio ready
