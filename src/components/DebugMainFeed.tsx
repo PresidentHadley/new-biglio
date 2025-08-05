@@ -63,7 +63,7 @@ export function DebugMainFeed() {
         .order('created_at', { ascending: false });
       
       results.totalBooks = allBiglios?.length || 0;
-      results.allBooks = allBiglios || [];
+      results.allBooks = (allBiglios as DebugInfo['allBooks']) || [];
 
       // 2. Check published biglios count
       const { data: publishedBiglios } = await supabase
@@ -73,7 +73,7 @@ export function DebugMainFeed() {
         .order('published_at', { ascending: false });
       
       results.publishedBooks = publishedBiglios?.length || 0;
-      results.publishedBooksList = publishedBiglios || [];
+      results.publishedBooksList = (publishedBiglios as DebugInfo['publishedBooksList']) || [];
 
       // 3. Check channels
       const { data: channels } = await supabase
@@ -81,7 +81,7 @@ export function DebugMainFeed() {
         .select('id, handle, display_name');
       
       results.totalChannels = channels?.length || 0;
-      results.channels = channels || [];
+      results.channels = (channels as DebugInfo['channels']) || [];
 
       // 4. Test the main feed query (exactly like useBooks hook)
       const { data: mainFeedBiglios, error: mainFeedError } = await supabase
@@ -102,7 +102,7 @@ export function DebugMainFeed() {
         .order('published_at', { ascending: false });
 
       results.mainFeedBooks = mainFeedBiglios?.length || 0;
-      results.mainFeedBooksList = mainFeedBiglios || [];
+      results.mainFeedBooksList = (mainFeedBiglios as DebugInfo['mainFeedBooksList']) || [];
       results.mainFeedError = mainFeedError;
 
       // 5. Check if any books have audio ready
@@ -112,7 +112,7 @@ export function DebugMainFeed() {
         .not('audio_url', 'is', null);
       
       results.chaptersWithAudio = chaptersData?.length || 0;
-      results.audioBooksMap = chaptersData?.reduce((acc: Record<string, number>, ch: { biglio_id: string; title: string; audio_url: string; audio_status: string }) => {
+      results.audioBooksMap = (chaptersData as Array<{ biglio_id: string; title: string; audio_url: string; audio_status: string }>)?.reduce((acc: Record<string, number>, ch) => {
         if (!acc[ch.biglio_id]) acc[ch.biglio_id] = 0;
         acc[ch.biglio_id]++;
         return acc;
