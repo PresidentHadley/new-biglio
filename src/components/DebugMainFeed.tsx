@@ -193,9 +193,9 @@ export function DebugMainFeed() {
           <div className="p-3 bg-blue-50 border border-blue-200 rounded">
             <div className="font-medium text-blue-900 mb-2">🌟 Main Feed Query Result</div>
             <div className="text-lg font-bold text-blue-700">{debugInfo.mainFeedBooks} books in main feed</div>
-            {debugInfo.mainFeedError && (
-              <div className="text-red-600 mt-1">Error: {JSON.stringify(debugInfo.mainFeedError)}</div>
-            )}
+            {debugInfo.mainFeedError ? (
+              <div className="text-red-600 mt-1">Error: {String(JSON.stringify(debugInfo.mainFeedError))}</div>
+            ) : null}
           </div>
 
           {debugInfo.publishedBooksList.length > 0 && (
