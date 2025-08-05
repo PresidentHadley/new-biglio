@@ -13,8 +13,10 @@ import {
   FaHeadphones,
   FaEllipsisV,
   FaRocket,
-  FaCheck
+  FaCheck,
+  FaImage
 } from 'react-icons/fa';
+import { ImagePicker } from '@/components/ImagePicker';
 
 interface Book {
   id: string;
@@ -51,6 +53,8 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
   const [loadingChapters, setLoadingChapters] = useState<Record<string, boolean>>({});
   const [playbackSpeed, setPlaybackSpeed] = useState<Record<string, number>>({});
   const [publishingBooks, setPublishingBooks] = useState<Record<string, boolean>>({});
+  const [editingCoverBookId, setEditingCoverBookId] = useState<string | null>(null);
+  const [showImagePicker, setShowImagePicker] = useState(false);
   
   const audioRef = useRef<HTMLAudioElement>(null);
   const supabase = createClient();
@@ -308,6 +312,40 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
     }
   };
 
+  // Handle cover image update
+  const handleCoverImageUpdate = async (bookId: string, newImageUrl: string) => {
+    try {
+      console.log('🖼️ Updating book cover...', { bookId, newImageUrl });
+
+      const { error } = await supabase
+        .from('biglios')
+        .update({ cover_url: newImageUrl })
+        .eq('id', bookId);
+
+      if (error) {
+        throw error;
+      }
+
+      console.log('✅ Book cover updated successfully');
+      
+      // Show success feedback
+      alert('✨ Book cover updated successfully!');
+      
+      // Trigger a page refresh to show the new cover
+      window.location.reload();
+      
+    } catch (err) {
+      console.error('❌ Error updating book cover:', err);
+      alert('Failed to update book cover. Please try again.');
+    }
+  };
+
+  // Open image picker for book cover
+  const openCoverImagePicker = (bookId: string) => {
+    setEditingCoverBookId(bookId);
+    setShowImagePicker(true);
+  };
+
   if (books.length === 0) {
     return (
       <div className="text-center py-16">
@@ -456,6 +494,18 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
                         </button>
                       )}
 
+                      {/* Change Cover Button - Only show for owner */}
+                      {isOwner && (
+                        <button
+                          onClick={() => openCoverImagePicker(book.id)}
+                          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition-colors text-sm font-medium"
+                          title="Change book cover"
+                        >
+                          <FaImage className="text-xs" />
+                          <span>Change Cover</span>
+                        </button>
+                      )}
+
                       {/* Published Status Badge */}
                       {book.is_published && (
                         <div className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium">
@@ -565,6 +615,29 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
             audioRef.current.playbackRate = speed;
           }
         }}
+      />
+
+      {/* Image Picker Modal */}
+      <ImagePicker
+        isOpen={showImagePicker}
+        onClose={() => {
+          setShowImagePicker(false);
+          setEditingCoverBookId(null);
+        }}
+        onImageSelected={(imageUrl) => {
+          if (editingCoverBookId) {
+            handleCoverImageUpdate(editingCoverBookId, imageUrl);
+          }
+          setShowImagePicker(false);
+          setEditingCoverBookId(null);
+        }}
+        currentImageUrl={
+          editingCoverBookId ? books.find(b => b.id === editingCoverBookId)?.cover_url : undefined
+        }
+        userFolder={editingCoverBookId || undefined} // Use book ID as folder for organization
+        bucket="book-covers"
+        title="Update Book Cover"
+        aspectRatio="portrait"
       />
     </div>
   );
