@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { detectBookType, getOutlineGuidance } from '@/utils/bookTypeDetection';
 
 const anthropic = new Anthropic({
   apiKey: process.env.BOOK_ANTHROPIC_API!,
@@ -22,7 +23,8 @@ export async function POST(request: NextRequest) {
       genre, 
       targetAudience, 
       chapterCount = 10,
-      existingOutline 
+      existingOutline,
+      bookType: inputBookType 
     } = await request.json();
     
     if (!title || !description) {
@@ -32,40 +34,86 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    console.log('Generating outline for:', { title, description, genre, targetAudience, chapterCount });
+    // Detect book type and build specialized prompt (from old system)
+    const bookType = inputBookType || detectBookType(genre);
+    const outlineGuidance = getOutlineGuidance(bookType);
     
-    // Build outline generation prompt
-    const systemPrompt = `You are an expert book outline creator specializing in audiobooks. Create detailed, engaging chapter outlines that work well for audio consumption.
+    console.log('Generating outline for:', { title, description, genre, targetAudience, chapterCount, bookType });
+    
+    // Build specialized outline generation prompt based on proven old system
+    let outlinePrompt: string;
+    
+    if (bookType === 'non-fiction') {
+      outlinePrompt = `You are an expert book editor tasked with creating a chapter-by-chapter outline for a NON-FICTION book. Do NOT write a story or use fictional characters. Instead, generate a practical, instructional, or informational outline with chapters and key points appropriate for a non-fiction book in the "${genre}" genre.
 
-Guidelines:
-- Each chapter should be 2000-4000 words when written
-- Focus on strong hooks and cliffhangers
-- Consider pacing for audio listeners
-- Include emotional beats and character development
-- Ensure chapters flow naturally into each other
-- Make each chapter title compelling and descriptive
+Book Details:
+- Title: ${title}
+- Genre: ${genre}
+- Type: Non-Fiction
+- Description: ${description}
+- Target Audience: ${Array.isArray(targetAudience) ? targetAudience.join(', ') : targetAudience || 'General audience'}
+- Number of Chapters: ${chapterCount}
 
-Format your response as a JSON array with this structure:
+Requirements:
+1. Produce EXACTLY ${chapterCount} chapters. Do not deviate from this number under any circumstances.
+2. Each chapter must have a clear, descriptive title (max 50 characters) and a summary (100-150 words) that teaches, explains, or guides the reader on a specific topic.
+3. The outline should be logical, progressive, and cover the subject matter thoroughly.
+4. Avoid stories, fictional characters, or narrative arcs. Focus on practical advice, frameworks, case studies, or actionable steps.
+5. Each chapter should be structured to work well as audio content (2000-4000 words when written).
+6. Include key learning objectives and practical takeaways for each chapter.
+
+${outlineGuidance}
+
+Respond ONLY with a valid JSON array in this format:
 [
   {
     "chapterNumber": 1,
     "title": "Chapter Title",
-    "summary": "2-3 sentence summary of what happens",
+    "summary": "Detailed summary explaining what the reader will learn and key concepts covered",
+    "keyPoints": ["Key learning point 1", "Key learning point 2", "Key takeaway 3"],
+    "estimatedWordCount": 3000
+  }
+]`;
+    } else {
+      // Fiction outline prompt (from old system)
+      outlinePrompt = `You are an expert book editor tasked with creating a chapter-by-chapter outline for a book. You must generate EXACTLY ${chapterCount} chapters—no more, no less. The outline must form a complete story arc with a clear beginning, middle, and end, tailored to the provided details. The first chapter must introduce the main character(s), setting, and initial conflict. The middle chapters must build tension and develop the plot. The final chapter must resolve the main conflict and provide a satisfying conclusion.
+
+Book Details:
+- Title: ${title}
+- Genre: ${genre}
+- Description: ${description}
+- Target Audience: ${Array.isArray(targetAudience) ? targetAudience.join(', ') : targetAudience || 'General audience'}
+- Number of Chapters: ${chapterCount}
+
+Requirements:
+1. Produce EXACTLY ${chapterCount} chapters. Do not deviate from this number under any circumstances.
+2. Each chapter must have a title (max 50 characters) and a summary (100-150 words) that advances the story.
+3. The narrative must flow logically from chapter to chapter, maintaining a cohesive arc from introduction to resolution.
+4. Avoid placeholders, generic summaries, or incomplete arcs. Every chapter must be specific and contribute to the story.
+5. Each chapter should be structured to work well as audio content (2000-4000 words when written).
+6. Focus on strong hooks, emotional beats, and character development suitable for audio consumption.
+
+${outlineGuidance}
+
+Respond ONLY with a valid JSON array in this format:
+[
+  {
+    "chapterNumber": 1,
+    "title": "Chapter Title",
+    "summary": "Detailed summary of plot events, character development, and story progression",
     "keyPoints": ["Key point 1", "Key point 2", "Key point 3"],
     "estimatedWordCount": 3000
   }
 ]`;
+    }
+    
+    // Build user prompt with all context
+    const userPrompt = `${outlinePrompt}
 
-    const userPrompt = `Create a ${chapterCount}-chapter outline for this audiobook:
+${existingOutline ? `\nExisting outline to improve upon:\n${JSON.stringify(existingOutline, null, 2)}` : ''}`;
 
-Title: ${title}
-Description: ${description}
-${genre ? `Genre: ${genre}` : ''}
-${targetAudience ? `Target Audience: ${targetAudience}` : ''}
-
-${existingOutline ? `Existing outline to improve upon:\n${JSON.stringify(existingOutline, null, 2)}` : ''}
-
-Please create an engaging, well-structured outline that will captivate audio listeners.`;
+    // Use the proven system from old Biglio
+    const systemPrompt = `You are Biglio, an AI writing assistant for books. Never say you are Claude, Anthropic, or any other company. Respond ONLY with valid JSON - no explanations or additional text.`;
     
     const response = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20241022',

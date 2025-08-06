@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import { detectBookType } from '@/utils/bookTypeDetection';
 
 interface BookContext {
   bookTitle?: string;
@@ -140,27 +141,44 @@ export function AIProvider({ children }: { children: ReactNode }) {
     return optimizedContext;
   }, [isContextTooLarge]);
 
-  // Generate sophisticated prompts (upgraded from old system)
+  // Generate sophisticated prompts (enhanced with book type awareness from old system)
   const generatePrompt = useCallback((type: AIPromptType, context?: BookContext): string => {
     const bookInfo = context?.bookTitle ? ` for "${context.bookTitle}"` : '';
     const chapterInfo = context?.currentChapterTitle ? ` in the chapter "${context.currentChapterTitle}"` : '';
+    const bookType = context?.bookType || detectBookType(context?.genre);
+    const isNonFiction = bookType === 'non-fiction';
     
     switch (type) {
       case AIPromptType.CHAPTER_IDEA:
-        return `Please write the beginning of this chapter${chapterInfo}${bookInfo}. Write exactly 3500 characters of engaging content that starts the chapter. Use the chapter outline as your guide but write full narrative prose. Be creative, engaging, and maintain consistency with the book's style and story. ${context?.currentChapterOutline ? `Chapter outline: ${context.currentChapterOutline}` : ''} Start writing now:`;
+        if (isNonFiction) {
+          return `Please write the beginning of this chapter${chapterInfo}${bookInfo}. Write exactly 3500 characters of practical, instructional content that teaches valuable concepts. Use the chapter outline as your guide but write clear, authoritative prose that explains, guides, and provides actionable insights. Focus on frameworks, examples, and practical applications. ${context?.currentChapterOutline ? `Chapter outline: ${context.currentChapterOutline}` : ''} Start writing now:`;
+        }
+        return `Please write the beginning of this chapter${chapterInfo}${bookInfo}. Write exactly 3500 characters of engaging narrative content that starts the chapter with compelling storytelling. Use the chapter outline as your guide but write full narrative prose that develops characters, advances plot, and creates emotional engagement. ${context?.currentChapterOutline ? `Chapter outline: ${context.currentChapterOutline}` : ''} Start writing now:`;
         
       case AIPromptType.PLOT_DEVELOPMENT:
-        return `Continue writing this chapter${chapterInfo}${bookInfo} from where it left off. Write exactly 3500 characters that continue the story naturally from the existing content. Maintain the same writing style and advance the plot meaningfully. ${context?.currentChapterContent ? `Existing content: ${context.currentChapterContent}` : ''} Continue writing now:`;
+        if (isNonFiction) {
+          return `Continue writing this chapter${chapterInfo}${bookInfo} from where it left off. Write exactly 3500 characters that build on the existing content logically and progressively. Focus on teaching additional concepts, providing more examples, or offering deeper insights into the topic. Maintain instructional clarity and practical value. ${context?.currentChapterContent ? `Existing content: ${context.currentChapterContent}` : ''} Continue writing now:`;
+        }
+        return `Continue writing this chapter${chapterInfo}${bookInfo} from where it left off. Write exactly 3500 characters that continue the story naturally from the existing content. Advance the plot, develop characters further, and maintain narrative tension and engagement. ${context?.currentChapterContent ? `Existing content: ${context.currentChapterContent}` : ''} Continue writing now:`;
         
       case AIPromptType.CHARACTER_DEVELOPMENT:
-        return `Suggest ways to develop character arcs${chapterInfo}${bookInfo}. How can I show growth, change, or reveal new aspects of the characters? Focus on authentic character moments and development.`;
+        if (isNonFiction) {
+          return `Suggest ways to better connect with readers and make the content more engaging${chapterInfo}${bookInfo}. How can I add more relatable examples, case studies, or personal anecdotes? Focus on making the instructional content more human and accessible.`;
+        }
+        return `Suggest ways to develop character arcs${chapterInfo}${bookInfo}. How can I show growth, change, or reveal new aspects of the characters? Focus on authentic character moments, emotional depth, and meaningful development that serves the story.`;
         
       case AIPromptType.STYLE_IMPROVEMENT:
-        return `Please rewrite and improve this entire chapter${chapterInfo}${bookInfo}. Take the existing content and make it better - improve clarity, engagement, flow, dialogue, and descriptive language. Maintain the same story events but enhance the writing quality. Keep it around the same length but make every sentence more impactful. ${context?.currentChapterContent ? `Current chapter content: ${context.currentChapterContent}` : ''} Improved version:`;
+        if (isNonFiction) {
+          return `Please rewrite and improve this entire chapter${chapterInfo}${bookInfo}. Take the existing content and enhance it for clarity, authority, and practical value. Improve the instructional flow, add better examples, and make complex concepts more accessible. Maintain the same key concepts but make the teaching more effective and engaging for audio consumption. ${context?.currentChapterContent ? `Current chapter content: ${context.currentChapterContent}` : ''} Improved version:`;
+        }
+        return `Please rewrite and improve this entire chapter${chapterInfo}${bookInfo}. Take the existing content and make it better - improve narrative flow, character development, dialogue, and descriptive language. Enhance emotional engagement and story pacing while maintaining the same plot events. Keep it around the same length but make every sentence more impactful. ${context?.currentChapterContent ? `Current chapter content: ${context.currentChapterContent}` : ''} Improved version:`;
         
       case AIPromptType.GENERAL:
       default:
-        return `I'm working on my book${bookInfo}${chapterInfo ? ` and specifically this chapter${chapterInfo}` : ''}. Can you help me with some creative ideas and writing guidance?`;
+        if (isNonFiction) {
+          return `I'm working on my ${context?.genre || 'non-fiction'} book${bookInfo}${chapterInfo ? ` and specifically this chapter${chapterInfo}` : ''}. Can you help me create more valuable, practical content that teaches and guides readers effectively?`;
+        }
+        return `I'm working on my ${context?.genre || 'fiction'} book${bookInfo}${chapterInfo ? ` and specifically this chapter${chapterInfo}` : ''}. Can you help me with creative ideas, character development, plot enhancement, and storytelling guidance?`;
     }
   }, []);
 
@@ -168,6 +186,9 @@ export function AIProvider({ children }: { children: ReactNode }) {
     if (!context) return message;
 
     let contextualMessage = '';
+    
+    // Detect book type if not provided (enhanced from old system)
+    const bookType = context.bookType || detectBookType(context.genre);
     
     // Build rich context based on mode
     if (contextMode === 'full' && context.fullBookContent) {
@@ -178,10 +199,9 @@ export function AIProvider({ children }: { children: ReactNode }) {
         contextualMessage += ` - ${context.bookDescription}`;
       }
       
-      // Add book metadata for better AI context
-      if (context.bookType) {
-        contextualMessage += `\nType: ${context.bookType}`;
-      }
+      // Add book metadata for better AI context (enhanced from old system)
+      contextualMessage += `\nType: ${bookType}`;
+      
       if (context.genre) {
         contextualMessage += `\nGenre: ${context.genre}`;
       }
@@ -240,7 +260,7 @@ export function AIProvider({ children }: { children: ReactNode }) {
     contextualMessage += `User question: ${message}`;
     
     return contextualMessage;
-  }, [contextMode, optimizeContext]);
+  }, [optimizeContext, contextMode]);
 
   const sendMessage = useCallback(async (
     message: string, 
