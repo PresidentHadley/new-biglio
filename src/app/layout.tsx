@@ -4,6 +4,7 @@ import './globals.css';
 import '../styles/SmartContactWidget.css';
 import { AIProvider } from '@/context/AIContext';
 import { AuthProvider } from '@/context/AuthContext';
+import { RealtimeProvider } from '@/context/RealtimeContext';
 import { ModernNavBar } from '@/components/ModernNavBar';
 import SmartContactWidget from '@/components/SmartContactWidget';
 
@@ -30,13 +31,15 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className} suppressHydrationWarning={true}>
         <AuthProvider>
-          <AIProvider>
-            <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white">
-              <ModernNavBar />
-              {children}
-              <SmartContactWidget />
-            </div>
-          </AIProvider>
+          <RealtimeProvider>
+            <AIProvider>
+              <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white">
+                <ModernNavBar />
+                {children}
+                <SmartContactWidget />
+              </div>
+            </AIProvider>
+          </RealtimeProvider>
         </AuthProvider>
       </body>
     </html>

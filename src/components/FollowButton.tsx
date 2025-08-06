@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { FaUserPlus, FaUserCheck } from 'react-icons/fa';
 import { useAuth } from '@/context/AuthContext';
+import { useRealtimeContext } from '@/context/RealtimeContext';
 // Minimal channel interface for FollowButton
 interface ChannelMinimal {
   id: string;
@@ -26,10 +27,26 @@ export default function FollowButton({
   variant = 'button'
 }: FollowButtonProps) {
   const { user } = useAuth();
+  const { getChannelStats, updateChannelStats } = useRealtimeContext();
   const isAuthenticated = !!user;
   const [following, setFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(channel.follower_count || 0);
   const [loading, setLoading] = useState(false);
+
+  // Initialize real-time stats
+  useEffect(() => {
+    updateChannelStats(channel.id, {
+      followerCount: channel.follower_count || 0
+    });
+  }, [channel.id, channel.follower_count, updateChannelStats]);
+
+  // Listen for real-time updates
+  useEffect(() => {
+    const stats = getChannelStats(channel.id);
+    if (stats) {
+      setFollowerCount(stats.followerCount);
+    }
+  }, [channel.id, getChannelStats]);
 
   // Don't show follow button for own channel
   const isOwnChannel = isAuthenticated && user && channel.user_id === user.id;

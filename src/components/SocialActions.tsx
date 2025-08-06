@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { FaHeart, FaComment, FaBookmark, FaShare } from 'react-icons/fa';
 import { useAuth } from '@/context/AuthContext';
+import { useRealtimeContext } from '@/context/RealtimeContext';
 // Minimal book interface for SocialActions
 interface BookMinimal {
   id: string;
@@ -31,12 +32,33 @@ export default function SocialActions({
   size = 'md'
 }: SocialActionsProps) {
   const { user } = useAuth();
+  const { getBiglioStats, updateBiglioStats } = useRealtimeContext();
   const isAuthenticated = !!user;
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [likeCount, setLikeCount] = useState(book.like_count || 0);
   const [saveCount, setSaveCount] = useState(book.save_count || 0);
+  const [commentCount, setCommentCount] = useState(book.comment_count || 0);
   const [loading, setLoading] = useState(false);
+
+  // Initialize real-time stats
+  useEffect(() => {
+    updateBiglioStats(book.id, {
+      likeCount: book.like_count || 0,
+      commentCount: book.comment_count || 0,
+      saveCount: book.save_count || 0
+    });
+  }, [book.id, book.like_count, book.comment_count, book.save_count, updateBiglioStats]);
+
+  // Listen for real-time updates
+  useEffect(() => {
+    const stats = getBiglioStats(book.id);
+    if (stats) {
+      setLikeCount(stats.likeCount);
+      setCommentCount(stats.commentCount);
+      setSaveCount(stats.saveCount);
+    }
+  }, [book.id, getBiglioStats]);
 
   // Icon sizes based on prop
   const iconSize = {
@@ -176,7 +198,7 @@ export default function SocialActions({
         <FaComment size={iconSize} />
         {showCounts && (
           <span className="text-sm font-medium">
-            {(book.comment_count || 0).toLocaleString()}
+                            {commentCount.toLocaleString()}
           </span>
         )}
       </button>
