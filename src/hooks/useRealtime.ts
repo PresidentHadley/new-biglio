@@ -4,6 +4,13 @@ import { useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
+// Type definitions for real-time payload data
+interface RealtimePayload {
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  new: Record<string, unknown>;
+  old: Record<string, unknown>;
+}
+
 export interface RealtimeEventHandlers {
   onLikeChange?: (biglioId: string, likeCount: number, isLiked: boolean) => void;
   onCommentChange?: (biglioId: string, commentCount: number) => void;
@@ -30,12 +37,12 @@ export function useRealtime(handlers: RealtimeEventHandlers) {
         .channel('realtime-likes')
         .on('postgres_changes', 
           { event: '*', schema: 'public', table: 'likes' },
-          async (payload) => {
+          async (payload: RealtimePayload) => {
             console.log('📡 Real-time likes change:', payload);
             
             if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') {
-              const biglioId = (payload.new as any)?.biglio_id || (payload.old as any)?.biglio_id;
-              if (biglioId) {
+              const biglioId = payload.new?.biglio_id || payload.old?.biglio_id;
+              if (biglioId && typeof biglioId === 'string') {
                 // Fetch updated biglio data
                 const { data: biglio } = await supabase
                   .from('biglios')
@@ -46,7 +53,7 @@ export function useRealtime(handlers: RealtimeEventHandlers) {
                 if (biglio && handlers.onLikeChange) {
                   handlers.onLikeChange(
                     biglioId, 
-                    biglio.like_count || 0,
+                    (biglio.like_count as number) || 0,
                     payload.eventType === 'INSERT'
                   );
                 }
@@ -65,11 +72,11 @@ export function useRealtime(handlers: RealtimeEventHandlers) {
         .channel('realtime-comments')
         .on('postgres_changes',
           { event: '*', schema: 'public', table: 'comments' },
-          async (payload) => {
+          async (payload: RealtimePayload) => {
             console.log('📡 Real-time comments change:', payload);
             
-            const biglioId = (payload.new as any)?.biglio_id || (payload.old as any)?.biglio_id;
-            if (biglioId) {
+            const biglioId = payload.new?.biglio_id || payload.old?.biglio_id;
+            if (biglioId && typeof biglioId === 'string') {
               // Fetch updated biglio data for comment count
               const { data: biglio } = await supabase
                 .from('biglios')
@@ -78,7 +85,7 @@ export function useRealtime(handlers: RealtimeEventHandlers) {
                 .single();
               
               if (biglio && handlers.onCommentChange) {
-                handlers.onCommentChange(biglioId, biglio.comment_count || 0);
+                handlers.onCommentChange(biglioId, (biglio.comment_count as number) || 0);
               }
 
                               // For new comments, also trigger onNewComment if available
@@ -93,7 +100,7 @@ export function useRealtime(handlers: RealtimeEventHandlers) {
                         channels!channels_user_id_fkey (handle, display_name, avatar_url)
                       )
                     `)
-                    .eq('id', (payload.new as any).id)
+                    .eq('id', payload.new?.id as string)
                     .single();
                 
                 if (comment) {
@@ -114,11 +121,11 @@ export function useRealtime(handlers: RealtimeEventHandlers) {
         .channel('realtime-saves')
         .on('postgres_changes',
           { event: '*', schema: 'public', table: 'saves' },
-          async (payload) => {
+          async (payload: RealtimePayload) => {
             console.log('📡 Real-time saves change:', payload);
             
-            const biglioId = (payload.new as any)?.biglio_id || (payload.old as any)?.biglio_id;
-            if (biglioId) {
+            const biglioId = payload.new?.biglio_id || payload.old?.biglio_id;
+            if (biglioId && typeof biglioId === 'string') {
               // Fetch updated biglio data
               const { data: biglio } = await supabase
                 .from('biglios')
@@ -129,7 +136,7 @@ export function useRealtime(handlers: RealtimeEventHandlers) {
               if (biglio && handlers.onSaveChange) {
                 handlers.onSaveChange(
                   biglioId, 
-                  biglio.save_count || 0,
+                  (biglio.save_count as number) || 0,
                   payload.eventType === 'INSERT'
                 );
               }
@@ -147,11 +154,11 @@ export function useRealtime(handlers: RealtimeEventHandlers) {
         .channel('realtime-follows')
         .on('postgres_changes',
           { event: '*', schema: 'public', table: 'follows' },
-          async (payload) => {
+          async (payload: RealtimePayload) => {
             console.log('📡 Real-time follows change:', payload);
             
-            const channelId = (payload.new as any)?.followed_channel_id || (payload.old as any)?.followed_channel_id;
-            if (channelId) {
+            const channelId = payload.new?.followed_channel_id || payload.old?.followed_channel_id;
+            if (channelId && typeof channelId === 'string') {
               // Fetch updated channel data
               const { data: channel } = await supabase
                 .from('channels')
@@ -162,7 +169,7 @@ export function useRealtime(handlers: RealtimeEventHandlers) {
               if (channel && handlers.onFollowChange) {
                 handlers.onFollowChange(
                   channelId, 
-                  channel.follower_count || 0,
+                  (channel.follower_count as number) || 0,
                   payload.eventType === 'INSERT'
                 );
               }
@@ -185,11 +192,11 @@ export function useRealtime(handlers: RealtimeEventHandlers) {
             table: 'biglios',
             filter: 'is_published=eq.true'
           },
-          async (payload) => {
+          async (payload: RealtimePayload) => {
             console.log('📡 Real-time biglio published:', payload);
             
             // Only trigger for newly published books (not all updates)
-            if ((payload.old as any)?.is_published === false && (payload.new as any)?.is_published === true) {
+            if (payload.old?.is_published === false && payload.new?.is_published === true) {
               // Fetch full biglio data with channel info
               const { data: biglio } = await supabase
                 .from('biglios')
@@ -204,7 +211,7 @@ export function useRealtime(handlers: RealtimeEventHandlers) {
                     follower_count
                   )
                 `)
-                .eq('id', (payload.new as any).id)
+                .eq('id', payload.new?.id as string)
                 .single();
               
               if (biglio && handlers.onNewBiglio) {
