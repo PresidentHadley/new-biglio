@@ -13,7 +13,9 @@ import Link from 'next/link';
 import { 
   FaSave,
   FaListOl,
-  FaVolumeUp
+  FaVolumeUp,
+  FaEdit,
+  FaClipboardList
 } from 'react-icons/fa';
 
 
@@ -328,7 +330,7 @@ export default function UnifiedBookEditor() {
       console.log('🔍 Fetching fresh chapters from database before creation...');
       const { data: freshChapters, error: fetchError } = await supabase
         .from('chapters')
-        .select('id, title, chapter_number')
+        .select('id, title, chapter_number, order_index')
         .eq('biglio_id', bookId)
         .order('chapter_number', { ascending: true });
       
@@ -346,9 +348,11 @@ export default function UnifiedBookEditor() {
         }))
       });
       
-      // Calculate next chapter number using fresh database data
-      const existingNumbers = (freshChapters || []).map(c => c.chapter_number).filter(n => typeof n === 'number');
+      // Calculate next chapter number and order_index using fresh database data
+      const existingNumbers = (freshChapters || []).map(c => c.chapter_number as number).filter(n => typeof n === 'number');
+      const existingOrderIndexes = (freshChapters || []).map(c => c.order_index as number).filter(n => typeof n === 'number');
       const nextChapterNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+      const nextOrderIndex = existingOrderIndexes.length > 0 ? Math.max(...existingOrderIndexes) + 1 : 1;
       
       console.log('🧮 Chapter number calculation:', {
         existing_numbers: existingNumbers,
@@ -386,11 +390,8 @@ export default function UnifiedBookEditor() {
         duration_seconds: 0
       };
       
-      // Add order_index if the constraint requires it
-      // This is a guess based on the error message
-      if ((freshChapters || []).length > 0) {
-        insertData.order_index = nextChapterNumber;
-      }
+      // Always add order_index to avoid constraint violations
+      insertData.order_index = nextOrderIndex;
       
       console.log('📝 Final insert data:', insertData);
       
@@ -581,42 +582,60 @@ export default function UnifiedBookEditor() {
       if (result && result.length > 0) {
         console.log(`📚 Creating ${result.length} chapters in database...`);
         
-        // Create chapters from AI outline
-        const startingChapterNumber = chapters.length + 1; // Continue from existing chapters
+        // Create chapters from AI outline with fresh data fetching
+        let successCount = 0;
         
         for (let i = 0; i < result.length; i++) {
           const chapter = result[i];
-          const chapterNumber = startingChapterNumber + i;
-          console.log(`📝 Creating chapter ${chapterNumber}: "${chapter.title}"`);
           
-          const insertResult = await supabase
-            .from('chapters')
-            .insert({
-              biglio_id: bookId,
-              title: chapter.title,
-              content: '', // Start with empty content for writing mode
-              outline_content: `${chapter.summary || ''}\n\nKey Points:\n${chapter.keyPoints ? chapter.keyPoints.map(point => `• ${point}`).join('\n') : ''}`,
-              summary: null,
-              chapter_number: chapterNumber,
-              is_published: false,
-              duration_seconds: 0
-            });
+          try {
+            // Fetch fresh chapter data before each insert to avoid conflicts
+            const { data: freshChapters } = await supabase
+              .from('chapters')
+              .select('chapter_number, order_index')
+              .eq('biglio_id', bookId)
+              .order('chapter_number', { ascending: false });
             
-          if (insertResult.error) {
-            console.error(`❌ Error creating chapter ${chapterNumber}:`, insertResult.error);
-          } else {
-            console.log(`✅ Successfully created chapter ${chapterNumber}`);
+            const chapterNumber = ((freshChapters?.[0]?.chapter_number as number) || 0) + 1;
+            const orderIndex = ((freshChapters?.[0]?.order_index as number) || 0) + 1;
+            console.log(`Creating chapter ${chapterNumber}: "${chapter.title}"`);
+            
+            const insertResult = await supabase
+              .from('chapters')
+              .insert({
+                biglio_id: bookId,
+                title: chapter.title,
+                content: '', // Start with empty content for writing mode
+                outline_content: `${chapter.summary || ''}\n\nKey Points:\n${chapter.keyPoints ? chapter.keyPoints.map(point => `• ${point}`).join('\n') : ''}`,
+                summary: null,
+                chapter_number: chapterNumber,
+                order_index: orderIndex,
+                is_published: false,
+                duration_seconds: 0
+              });
+              
+            if (insertResult.error) {
+              console.error(`Error creating chapter ${chapterNumber}:`, insertResult.error);
+              // Continue with other chapters instead of failing entirely
+            } else {
+              console.log(`✓ Successfully created chapter ${chapterNumber}`);
+              successCount++;
+            }
+          } catch (error) {
+            console.error(`Failed to create chapter "${chapter.title}":`, error);
           }
         }
 
-        const newTotalChapters = chapters.length + result.length;
-        console.log('📊 Updating book total chapters to:', newTotalChapters);
-        
-        // Update book's total chapters
-        await supabase
-          .from('biglios')
-          .update({ total_chapters: newTotalChapters })
-          .eq('id', bookId);
+        // Update book's total chapters based on actual success count
+        if (successCount > 0) {
+          const newTotalChapters = chapters.length + successCount;
+          console.log(`Updating book total chapters to: ${newTotalChapters} (${successCount} created successfully)`);
+          
+          await supabase
+            .from('biglios')
+            .update({ total_chapters: newTotalChapters })
+            .eq('id', bookId);
+        }
 
         setAiPrompt('');
         await fetchChapters();
@@ -625,7 +644,7 @@ export default function UnifiedBookEditor() {
         // Show success screen
         setShowOutlineSuccess(true);
         
-        console.log('🎉 AI outline generation completed successfully!');
+        console.log(`AI outline generation completed! Created ${successCount}/${result.length} chapters successfully.`);
       } else {
         console.warn('⚠️ AI returned empty or invalid result:', result);
         alert('AI outline generation returned no chapters. Please try again.');
@@ -729,23 +748,25 @@ export default function UnifiedBookEditor() {
           <div className="flex gap-2 border-2 border-gray-200 rounded-lg p-1 bg-gray-50">
             <button
               onClick={() => setMode('outline')}
-              className={`px-4 py-2 rounded-md font-semibold transition-all duration-200 ${
+              className={`px-4 py-2 rounded-md font-semibold transition-all duration-200 flex items-center gap-2 ${
                 mode === 'outline' 
                   ? 'bg-purple-600 text-white shadow-md transform scale-105' 
                   : 'bg-white text-gray-700 hover:bg-gray-100 hover:text-purple-600'
               }`}
             >
-              📋 Outline
+              <FaClipboardList className="text-sm" />
+              Outline
             </button>
             <button
               onClick={() => setMode('write')}
-              className={`px-4 py-2 rounded-md font-semibold transition-all duration-200 ${
+              className={`px-4 py-2 rounded-md font-semibold transition-all duration-200 flex items-center gap-2 ${
                 mode === 'write' 
                   ? 'bg-green-600 text-white shadow-md transform scale-105' 
                   : 'bg-white text-gray-700 hover:bg-gray-100 hover:text-green-600'
               }`}
             >
-              ✍️ Write
+              <FaEdit className="text-sm" />
+              Write
             </button>
           </div>
         </div>

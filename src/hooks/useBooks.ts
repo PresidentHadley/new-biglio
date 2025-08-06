@@ -54,7 +54,7 @@ export function useBooks() {
   const fetchBooks = useCallback(async () => {
     try {
       setLoading(true);
-              console.log('[BOOKS] Fetching published books for main feed...');
+        
       
       // First, get biglios data
       const { data: bigliosData, error: bigliosError } = await supabase
