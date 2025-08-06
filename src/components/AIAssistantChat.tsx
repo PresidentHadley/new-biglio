@@ -24,6 +24,7 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  actionType?: 'start' | 'continue' | 'improve';
 }
 
 interface Book {
@@ -338,57 +339,45 @@ Let's create something amazing!`;
     const context = buildContext();
     const prompt = generatePrompt(type, context);
     
-    // For writing actions, generate content and auto-insert instead of showing in chat
-    const isWritingAction = type === AIPromptType.CHAPTER_IDEA || 
-                           type === AIPromptType.PLOT_DEVELOPMENT || 
-                           type === AIPromptType.STYLE_IMPROVEMENT;
-    
-    if (isWritingAction && onInsertContent) {
-      try {
-        // Show user message in chat for context
-        const userMessage: ChatMessage = {
-          id: `user-${Date.now()}`,
-          role: 'user',
-          content: getWritingActionLabel(type),
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, userMessage]);
+    // Generate content and show in chat with insert/copy buttons (NO auto-insert)
+    try {
+      // Show user message in chat for context
+      const userMessage: ChatMessage = {
+        id: `user-${Date.now()}`,
+        role: 'user',
+        content: getWritingActionLabel(type),
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, userMessage]);
 
-        // Generate content
-        const conversationId = book && currentChapter ? 
-          `${book.id}-${currentChapter.id}` : 
-          book?.id || 'general';
+      // Generate content
+      const conversationId = book && currentChapter ? 
+        `${book.id}-${currentChapter.id}` : 
+        book?.id || 'general';
 
-        const response = await sendAIMessage(prompt, context, conversationId);
+      const response = await sendAIMessage(prompt, context, conversationId);
 
-        // Auto-insert the generated content with action type
-        const actionType = type === AIPromptType.CHAPTER_IDEA ? 'start' :
-                          type === AIPromptType.PLOT_DEVELOPMENT ? 'continue' :
-                          type === AIPromptType.STYLE_IMPROVEMENT ? 'improve' : undefined;
-        onInsertContent(response, actionType);
+      // Show the generated content in chat with insert/copy buttons
+      const assistantMessage: ChatMessage = {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        content: response,
+        timestamp: new Date(),
+        actionType: type === AIPromptType.CHAPTER_IDEA ? 'start' :
+                   type === AIPromptType.PLOT_DEVELOPMENT ? 'continue' :
+                   type === AIPromptType.STYLE_IMPROVEMENT ? 'improve' : undefined
+      };
+      setMessages(prev => [...prev, assistantMessage]);
 
-        // Show confirmation message in chat
-        const confirmMessage: ChatMessage = {
-          id: `assistant-${Date.now()}`,
-          role: 'assistant',
-          content: `✅ Content generated and inserted! I've added ${response.length} characters to your chapter.`,
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, confirmMessage]);
-
-      } catch (error) {
-        console.error('Error generating content:', error);
-        const errorMessage: ChatMessage = {
-          id: `error-${Date.now()}`,
-          role: 'assistant',
-          content: 'Sorry, I encountered an error generating content. Please try again.',
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, errorMessage]);
-      }
-    } else {
-      // For non-writing actions, use regular chat flow
-      sendMessage(prompt);
+    } catch (error) {
+      console.error('Error generating content:', error);
+      const errorMessage: ChatMessage = {
+        id: `error-${Date.now()}`,
+        role: 'assistant',
+        content: 'Sorry, I encountered an error generating content. Please try again.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
     }
   };
 

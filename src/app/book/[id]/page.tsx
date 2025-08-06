@@ -159,14 +159,7 @@ export default function UnifiedBookEditor() {
     }
   }, [supabase, bookId]); // ← Removed selectedChapter dependency
 
-  // Select a chapter and load its content into edit state
-  const selectChapter = useCallback((chapter: Chapter) => {
-    setSelectedChapter(chapter);
-    setEditTitle(chapter.title);
-    setEditContent(chapter.content || '');
-    setEditOutlineContent(chapter.outline_content || '');
-    setShowOutlineSuccess(false); // Hide success screen when chapter is selected
-  }, []);
+
 
   // Generate chapter summary for AI context
   const generateChapterSummary = useCallback(async (title: string, content: string): Promise<string | null> => {
@@ -515,6 +508,29 @@ export default function UnifiedBookEditor() {
 
 
 
+
+  // Safe chapter selection with content preservation
+  const selectChapter = useCallback(async (chapter: Chapter) => {
+    // Save current chapter content before switching if we have unsaved changes
+    if (selectedChapter && (
+      editTitle !== selectedChapter.title || 
+      editContent !== (selectedChapter.content || '') ||
+      editOutlineContent !== (selectedChapter.outline_content || '')
+    )) {
+      // Force save the current chapter before switching
+      if (mode === 'write') {
+        await saveChapterContent(selectedChapter.id, editTitle, editContent);
+      } else {
+        await saveChapterOutline(selectedChapter.id, editTitle, editOutlineContent);
+      }
+    }
+
+    // Update selected chapter and editor content
+    setSelectedChapter(chapter);
+    setEditTitle(chapter.title);
+    setEditContent(chapter.content || '');
+    setEditOutlineContent(chapter.outline_content || '');
+  }, [selectedChapter, editTitle, editContent, editOutlineContent, mode, saveChapterContent, saveChapterOutline]);
 
   // Auto-save when content changes (mode-aware)
   useEffect(() => {
@@ -1248,6 +1264,24 @@ The more detail you provide, the better the AI can assist with writing!"
                       </p>
                     </div>
                     <div className="flex gap-3">
+                      {/* Manual Save Button */}
+                      <button
+                        onClick={() => saveChapterContent(selectedChapter.id, editTitle, editContent)}
+                        disabled={savingChapter}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                      >
+                        {savingChapter ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            💾 Save Now
+                          </>
+                        )}
+                      </button>
+                      
                       <AudioGenerationButton
                         chapterId={selectedChapter.id}
                         chapterTitle={editTitle}
