@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FaPlay, FaPause, FaSpinner, FaVolumeUp, FaDownload, FaMale, FaFemale } from 'react-icons/fa';
+import { FaPlay, FaPause, FaSpinner, FaVolumeUp, FaDownload, FaMale, FaFemale, FaUser, FaCrown, FaLock } from 'react-icons/fa';
 
 interface AudioGenerationButtonProps {
   chapterId: string;
@@ -33,6 +33,7 @@ export function AudioGenerationButton({
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<string>('');
   const [showVoiceSelection, setShowVoiceSelection] = useState(false);
+  const [showComingSoonModal, setShowComingSoonModal] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
 
@@ -228,6 +229,48 @@ export function AudioGenerationButton({
                   <div className="text-sm text-gray-600">Deep, engaging male narrator</div>
                 </div>
               </button>
+
+              {/* Coming Soon - AI Voice Cloning */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowComingSoonModal(true)}
+                  className="w-full flex items-center gap-3 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-dashed border-purple-300 rounded-lg hover:from-purple-100 hover:to-indigo-100 transition-all group relative overflow-hidden"
+                >
+                  <div className="relative z-10 flex items-center gap-3 w-full">
+                    <FaUser className="text-purple-600" size={18} />
+                    <div className="text-left flex-1">
+                      <div className="font-medium text-gray-900 flex items-center gap-2">
+                        Your AI Voice
+                        <FaCrown className="text-yellow-500" size={14} />
+                      </div>
+                      <div className="text-sm text-purple-600 font-medium">Coming Soon - Premium</div>
+                    </div>
+                    <FaLock className="text-purple-400" size={14} />
+                  </div>
+                  <div className="absolute top-2 right-2 bg-purple-600 text-white text-xs px-2 py-1 rounded-full font-bold">
+                    NEW
+                  </div>
+                </button>
+              </div>
+
+              <div className="relative">
+                <button
+                  onClick={() => setShowComingSoonModal(true)}
+                  className="w-full flex items-center gap-3 p-4 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-dashed border-amber-300 rounded-lg hover:from-amber-100 hover:to-orange-100 transition-all group relative overflow-hidden"
+                >
+                  <div className="relative z-10 flex items-center gap-3 w-full">
+                    <FaCrown className="text-amber-600" size={18} />
+                    <div className="text-left flex-1">
+                      <div className="font-medium text-gray-900">Celebrity Voices</div>
+                      <div className="text-sm text-amber-600 font-medium">Coming Soon - Premium</div>
+                    </div>
+                    <FaLock className="text-amber-400" size={14} />
+                  </div>
+                  <div className="absolute top-2 right-2 bg-amber-600 text-white text-xs px-2 py-1 rounded-full font-bold">
+                    SOON
+                  </div>
+                </button>
+              </div>
             </div>
             
             <button
@@ -236,6 +279,79 @@ export function AudioGenerationButton({
             >
               Cancel
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Coming Soon Modal - AI Voice Cloning */}
+      {showComingSoonModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-lg mx-4">
+            <div className="text-center">
+              <div className="mx-auto w-16 h-16 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full flex items-center justify-center mb-4">
+                <FaUser className="text-white text-2xl" />
+              </div>
+              
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">🎭 Your AI Voice - Coming Soon!</h3>
+              
+              <p className="text-gray-600 mb-6 leading-relaxed">
+                Upload just <strong>5 minutes</strong> of your voice and our AI will narrate your entire audiobook in <strong>YOUR voice</strong>.
+              </p>
+              
+              <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-4 mb-6">
+                <div className="space-y-3 text-left">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <span className="text-sm text-gray-700">✨ Sound like yourself reading</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <span className="text-sm text-gray-700">🎵 Unlimited narration</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <span className="text-sm text-gray-700">🏆 Professional quality</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <span className="text-sm text-gray-700">💰 Save thousands on narration costs</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <FaCrown className="text-amber-600" />
+                  <span className="font-semibold text-amber-800">Early Bird Special</span>
+                </div>
+                <p className="text-sm text-amber-700">
+                  Be among the first 1000 users and get <strong>50% off</strong> your first month of Premium!
+                </p>
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    // TODO: Add to waitlist functionality
+                    setShowComingSoonModal(false);
+                    alert('Thanks for your interest! We&apos;ll notify you when voice cloning is available.');
+                  }}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all transform hover:scale-105"
+                >
+                  🚀 Join Waitlist
+                </button>
+                <button
+                  onClick={() => setShowComingSoonModal(false)}
+                  className="px-6 py-3 text-gray-600 hover:text-gray-800 transition-colors"
+                >
+                  Maybe Later
+                </button>
+              </div>
+              
+              <p className="text-xs text-gray-500 mt-4">
+                💌 We&apos;ll email you when it&apos;s ready. No spam, we promise!
+              </p>
+            </div>
           </div>
         </div>
       )}
