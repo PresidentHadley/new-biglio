@@ -54,7 +54,7 @@ export function useBooks() {
   const fetchBooks = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('📚 Fetching published books for main feed...');
+              console.log('[BOOKS] Fetching published books for main feed...');
       
       // First, get biglios data
       const { data: bigliosData, error: bigliosError } = await supabase
@@ -93,9 +93,9 @@ export function useBooks() {
         return;
       }
 
-      console.log(`✅ Found ${bigliosData.length} published books`);
+      console.log(`[BOOKS] ✓ Found ${bigliosData.length} published books`);
       bigliosData.forEach((book, index) => {
-        console.log(`📖 ${index + 1}. "${book.title}" - Published: ${book.published_at}`);
+                  console.log(`[BOOKS] ${index + 1}. "${book.title}" - Published: ${book.published_at}`);
       });
 
       // Get unique channel IDs

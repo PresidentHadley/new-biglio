@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FaPlay, FaPause, FaSpinner, FaVolumeUp, FaDownload, FaMale, FaFemale, FaUser, FaCrown, FaLock } from 'react-icons/fa';
+import { FaPlay, FaPause, FaSpinner, FaVolumeUp, FaDownload, FaMale, FaFemale, FaUser, FaCrown, FaLock, FaMicrophone, FaStar, FaMusic, FaRocket, FaTrophy, FaDollarSign } from 'react-icons/fa';
 
 interface AudioGenerationButtonProps {
   chapterId: string;
@@ -292,7 +292,10 @@ export function AudioGenerationButton({
                 <FaUser className="text-white text-2xl" />
               </div>
               
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">🎭 Your AI Voice - Coming Soon!</h3>
+                              <h3 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                  <FaMicrophone className="text-purple-600" />
+                  Your AI Voice - Coming Soon!
+                </h3>
               
               <p className="text-gray-600 mb-6 leading-relaxed">
                 Upload just <strong>5 minutes</strong> of your voice and our AI will narrate your entire audiobook in <strong>YOUR voice</strong>.
@@ -302,19 +305,31 @@ export function AudioGenerationButton({
                 <div className="space-y-3 text-left">
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <span className="text-sm text-gray-700">✨ Sound like yourself reading</span>
+                    <span className="text-sm text-gray-700 flex items-center gap-1">
+                      <FaStar className="text-yellow-500" />
+                      Sound like yourself reading
+                    </span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <span className="text-sm text-gray-700">🎵 Unlimited narration</span>
+                    <span className="text-sm text-gray-700 flex items-center gap-1">
+                      <FaMusic className="text-purple-500" />
+                      Unlimited narration
+                    </span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <span className="text-sm text-gray-700">🏆 Professional quality</span>
+                    <span className="text-sm text-gray-700 flex items-center gap-1">
+                      <FaTrophy className="text-yellow-500" />
+                      Professional quality
+                    </span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <span className="text-sm text-gray-700">💰 Save thousands on narration costs</span>
+                    <span className="text-sm text-gray-700 flex items-center gap-1">
+                      <FaDollarSign className="text-green-500" />
+                      Save thousands on narration costs
+                    </span>
                   </div>
                 </div>
               </div>
@@ -338,7 +353,8 @@ export function AudioGenerationButton({
                   }}
                   className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all transform hover:scale-105"
                 >
-                  🚀 Join Waitlist
+                  <FaRocket className="mr-2" />
+                Join Waitlist
                 </button>
                 <button
                   onClick={() => setShowComingSoonModal(false)}

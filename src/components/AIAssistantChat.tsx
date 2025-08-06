@@ -16,7 +16,10 @@ import {
   FaFileAlt,
   FaGlobe,
   FaCopy,
-  FaPlus
+  FaPlus,
+  FaPencilAlt,
+  FaFeather,
+  FaStar
 } from 'react-icons/fa';
 
 interface ChatMessage {
@@ -345,7 +348,7 @@ Let's create something amazing!`;
       const userMessage: ChatMessage = {
         id: `user-${Date.now()}`,
         role: 'user',
-        content: getWritingActionLabel(type),
+        content: getWritingActionLabel(type).text,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, userMessage]);
@@ -381,16 +384,16 @@ Let's create something amazing!`;
     }
   };
 
-  const getWritingActionLabel = (type: AIPromptType): string => {
+  const getWritingActionLabel = (type: AIPromptType): { icon: React.ReactNode; text: string } => {
     switch (type) {
       case AIPromptType.CHAPTER_IDEA:
-        return "🖋️ Start Writing";
+        return { icon: <FaPencilAlt />, text: "Start Writing" };
       case AIPromptType.PLOT_DEVELOPMENT:
-        return "📝 Continue Story";
+        return { icon: <FaFeather />, text: "Continue Story" };
       case AIPromptType.STYLE_IMPROVEMENT:
-        return "✨ Improve Writing";
+        return { icon: <FaStar />, text: "Improve Writing" };
       default:
-        return "💭 AI Assistance";
+        return { icon: <FaRobot />, text: "AI Assistance" };
     }
   };
 
@@ -613,8 +616,9 @@ Let's create something amazing!`;
         )}
         
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-800 p-3 rounded-lg">
-            ⚠️ {error}
+          <div className="bg-red-50 border border-red-200 text-red-800 p-3 rounded-lg flex items-center gap-2">
+            <FaTimes className="text-red-600" />
+            {error}
           </div>
         )}
         

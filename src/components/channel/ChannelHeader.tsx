@@ -194,6 +194,17 @@ export function ChannelHeader({ channel, isOwner, bookCount, onChannelUpdate, on
   const handleImageUpload = async (file: File, type: 'avatar' | 'cover') => {
     if (!file || !isOwner) return;
     
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      alert('Image size must be less than 5MB');
+      return;
+    }
+    
     const setUploading = type === 'avatar' ? setAvatarUploading : setCoverUploading;
     setUploading(true);
     
@@ -202,18 +213,24 @@ export function ChannelHeader({ channel, isOwner, bookCount, onChannelUpdate, on
       const fileExt = file.name.split('.').pop();
       const fileName = `${channel.id}/${type}.${fileExt}`;
       
+      console.log(`Uploading ${type} to:`, fileName);
+      
       const { error: uploadError } = await supabase.storage
-        .from('channel-images')
+        .from('channel-avatars')
         .upload(fileName, file, { upsert: true });
       
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
       
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from('channel-images')
+        .from('channel-avatars')
         .getPublicUrl(fileName);
       
       const imageUrl = urlData.publicUrl;
+      console.log(`${type} uploaded successfully:`, imageUrl);
       
       // Update channel in database
       const updateField = type === 'avatar' ? 'avatar_url' : 'cover_url';
@@ -222,12 +239,19 @@ export function ChannelHeader({ channel, isOwner, bookCount, onChannelUpdate, on
         .update({ [updateField]: imageUrl })
         .eq('id', channel.id);
       
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Database update error:', updateError);
+        throw updateError;
+      }
       
       // Update local state
       onChannelUpdate?.({ [updateField]: imageUrl });
+      
+      // Success feedback
+      alert(`${type === 'avatar' ? 'Profile picture' : 'Cover photo'} updated successfully!`);
     } catch (error) {
       console.error(`Error uploading ${type}:`, error);
+      alert(`Failed to upload ${type === 'avatar' ? 'profile picture' : 'cover photo'}. Please try again.`);
     } finally {
       setUploading(false);
     }

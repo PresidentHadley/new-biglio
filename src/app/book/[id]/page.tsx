@@ -10,6 +10,11 @@ import { AudioGenerationButton } from '@/components/AudioGenerationButton';
 import { AIAssistantChat } from '@/components/AIAssistantChat';
 
 import Link from 'next/link';
+import { 
+  FaSave,
+  FaListOl,
+  FaVolumeUp
+} from 'react-icons/fa';
 
 
 
@@ -855,7 +860,7 @@ export default function UnifiedBookEditor() {
                         )}
                         {chapter.audio_url && (
                           <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-                            🎵
+                            <FaVolumeUp />
                           </span>
                         )}
                       </div>
@@ -876,7 +881,10 @@ export default function UnifiedBookEditor() {
                 
                 {/* Editable Outline */}
                 <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4">📝 Chapter Outline</h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <FaListOl className="text-blue-600" />
+                  Chapter Outline
+                </h3>
                   
                   {chapters.length === 0 ? (
                     <p className="text-gray-500 italic">No chapters yet. Generate an outline below or create chapters manually.</p>
@@ -1275,11 +1283,12 @@ The more detail you provide, the better the AI can assist with writing!"
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                             Saving...
                           </>
-                        ) : (
-                          <>
-                            💾 Save Now
-                          </>
-                        )}
+                                      ) : (
+                <>
+                  <FaSave className="mr-1" />
+                  Save Now
+                </>
+              )}
                       </button>
                       
                       <AudioGenerationButton

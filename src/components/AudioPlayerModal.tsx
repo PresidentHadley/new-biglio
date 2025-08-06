@@ -84,7 +84,7 @@ export function AudioPlayerModal({ book, isOpen, onClose }: AudioPlayerModalProp
       const chapters = (data as unknown as Chapter[]) || [];
       setChapters(chapters);
       
-      console.log(`🎵 AudioPlayerModal: Loaded ${chapters.length} chapters for "${book.title}"`);
+              console.log(`[AUDIO] AudioPlayerModal: Loaded ${chapters.length} chapters for "${book.title}"`);
       console.log('📋 Chapter details:', chapters.map(ch => ({
         id: ch.id,
         title: ch.title,
@@ -97,7 +97,7 @@ export function AudioPlayerModal({ book, isOpen, onClose }: AudioPlayerModalProp
       // Auto-select first chapter with audio
       const firstChapterWithAudio = chapters?.find(ch => ch.audio_url);
       if (firstChapterWithAudio) {
-        console.log('🎯 Auto-selecting first chapter with audio:', firstChapterWithAudio.title);
+        console.log('[AUDIO] Auto-selecting first chapter with audio:', firstChapterWithAudio.title);
         setCurrentChapter(firstChapterWithAudio);
       } else {
         console.log('⚠️ No chapters with audio found');

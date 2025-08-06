@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { FaPlay, FaUser } from 'react-icons/fa';
+import { FaPlay, FaUser, FaSpinner, FaHeadphones } from 'react-icons/fa';
 import { useBooks } from '@/hooks/useBooks';
 import { AudioPlayerModal } from '@/components/AudioPlayerModal';
 import { DebugMainFeed } from '@/components/DebugMainFeed';
@@ -75,7 +75,10 @@ export default function HomePage() {
       <main className="max-w-md mx-auto">
         {loading && (
           <div className="p-6 text-center">
-            <div className="text-white">📚 Loading audiobooks from Supabase...</div>
+            <div className="text-white flex items-center justify-center gap-2">
+          <FaSpinner className="animate-spin" />
+          Loading audiobooks from Supabase...
+        </div>
             <div className="text-gray-400 text-sm mt-2">Connecting to database</div>
           </div>
         )}
@@ -220,7 +223,11 @@ export default function HomePage() {
                 >
                   <FaUser className="w-3 h-3" />
                   @{book.channel.handle}
-                </Link> {book.description} 🎧✨
+                                  </Link> {book.description} 
+                  <div className="flex items-center gap-1 mt-1">
+                    <FaHeadphones className="text-purple-500 text-sm" />
+                    <span className="text-gray-500 text-xs">Audiobook</span>
+                  </div>
               </p>
               <p className="text-gray-400 text-sm mt-1">View all {book.comment_count} comments</p>
             </div>
