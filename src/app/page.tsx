@@ -122,8 +122,24 @@ export default function HomePage() {
                     className="object-cover z-0"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
-                  {/* Play button overlay - NO background overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center z-10">
+                  {/* Title overlay with black background */}
+                  <div className="absolute bottom-0 left-0 right-0 z-10">
+                    <div className="bg-black bg-opacity-75 backdrop-blur-sm p-3">
+                      <h3 className="text-white font-bold text-sm md:text-base leading-tight overflow-hidden" style={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical'
+                      }}>
+                        {book.title}
+                      </h3>
+                      <p className="text-gray-300 text-xs mt-1">
+                        {book.total_chapters} chapters
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Play button overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center z-20">
                     <button className="bg-white bg-opacity-90 backdrop-blur-sm rounded-full p-4 hover:bg-opacity-100 transition-all shadow-lg">
                       <FaPlay className="text-gray-900 text-xl ml-1" />
                     </button>
