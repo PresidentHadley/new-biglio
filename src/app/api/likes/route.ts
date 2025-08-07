@@ -5,7 +5,8 @@ import { cookies } from 'next/headers';
 // POST /api/likes - Toggle like on a biglio
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -87,7 +88,8 @@ export async function POST(request: NextRequest) {
 // GET /api/likes?biglio_id=xxx - Check if user has liked a biglio
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
