@@ -15,7 +15,8 @@ import {
   FaRocket,
   FaCheck,
   FaImage,
-  FaEdit
+  FaEdit,
+  FaTrash
 } from 'react-icons/fa';
 import { ImagePicker } from '@/components/ImagePicker';
 
@@ -56,6 +57,7 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
   const [publishingBooks, setPublishingBooks] = useState<Record<string, boolean>>({});
   const [editingCoverBookId, setEditingCoverBookId] = useState<string | null>(null);
   const [showImagePicker, setShowImagePicker] = useState(false);
+  const [deletingBooks, setDeletingBooks] = useState<Record<string, boolean>>({});
   
   const audioRef = useRef<HTMLAudioElement>(null);
   const supabase = createClient();
@@ -347,6 +349,55 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
     setShowImagePicker(true);
   };
 
+  // Handle book deletion
+  const handleDeleteBook = async (bookId: string, bookTitle: string) => {
+    // Confirmation dialog
+    const confirmed = confirm(
+      `⚠️ Delete Book: "${bookTitle}"?\n\n` +
+      `This action CANNOT be undone and will:\n` +
+      `• Delete all chapters and content\n` +
+      `• Remove all audio files\n` +
+      `• Delete the book cover image\n` +
+      `• Remove all likes, saves, and comments\n` +
+      `• Remove from your channel and the main feed\n\n` +
+      `Are you absolutely sure you want to delete this book?`
+    );
+    
+    if (!confirmed) return;
+
+    if (!isOwner || deletingBooks[bookId]) return;
+    
+    setDeletingBooks(prev => ({ ...prev, [bookId]: true }));
+    
+    try {
+      console.log('🗑️ Deleting book...', bookId);
+      
+      const response = await fetch(`/api/books/${bookId}/delete`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete book');
+      }
+
+      console.log('✅ Book deleted successfully:', data);
+      
+      // Show success message
+      alert(`🗑️ Success! "${bookTitle}" has been permanently deleted.`);
+      
+      // Refresh the page to update the book list
+      window.location.reload();
+      
+    } catch (err) {
+      console.error('❌ Error deleting book:', err);
+      alert(`Failed to delete "${bookTitle}". Please try again.`);
+    } finally {
+      setDeletingBooks(prev => ({ ...prev, [bookId]: false }));
+    }
+  };
+
   if (books.length === 0) {
     return (
       <div className="text-center py-16">
@@ -521,6 +572,30 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
                             <FaImage className="text-xs" />
                             <span className="hidden sm:inline">Change Cover</span>
                             <span className="sm:hidden">Cover</span>
+                          </button>
+                        )}
+
+                        {/* Delete Book Button - Only show for owner */}
+                        {isOwner && (
+                          <button
+                            onClick={() => handleDeleteBook(book.id, book.title)}
+                            disabled={deletingBooks[book.id]}
+                            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Delete this book permanently"
+                          >
+                            {deletingBooks[book.id] ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                <span className="hidden sm:inline">Deleting...</span>
+                                <span className="sm:hidden">Del...</span>
+                              </>
+                            ) : (
+                              <>
+                                <FaTrash className="text-xs" />
+                                <span className="hidden sm:inline">Delete Book</span>
+                                <span className="sm:hidden">Delete</span>
+                              </>
+                            )}
                           </button>
                         )}
 
