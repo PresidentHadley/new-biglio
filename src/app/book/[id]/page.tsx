@@ -1475,13 +1475,14 @@ The more detail you provide, the better the AI can assist with writing!"
                   </div>
                 </div>
 
-                {/* Direct Editor - Optimized Spacing */}
-                <div className="flex-1 p-4 overflow-y-auto">
-                  <div className="space-y-3">
+                {/* Direct Editor - Fixed Layout */}
+                <div className="flex-1 flex flex-col p-4">
+                  {/* Scrollable Text Area */}
+                  <div className="flex-1 mb-4">
                     <textarea
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
-                      className={`w-full h-[calc(100vh-280px)] p-4 bg-white text-gray-900 rounded border leading-relaxed focus:outline-none resize-none text-base ${
+                      className={`w-full h-full p-4 bg-white text-gray-900 rounded border leading-relaxed focus:outline-none resize-none text-base ${
                         isOverLimit() 
                           ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200' 
                           : isNearLimit()
@@ -1490,7 +1491,10 @@ The more detail you provide, the better the AI can assist with writing!"
                       }`}
                       placeholder="Start writing your chapter..."
                     />
-                    
+                  </div>
+                  
+                  {/* Fixed Bottom Section */}
+                  <div className="flex-shrink-0 space-y-3">
                     {/* Character count and warnings */}
                     <div className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-4">
@@ -1514,8 +1518,8 @@ The more detail you provide, the better the AI can assist with writing!"
                       )}
                     </div>
                     
-                    {/* Save Button at bottom */}
-                    <div className="flex justify-center pt-2">
+                    {/* Save Button - Always Visible */}
+                    <div className="flex justify-center">
                       <button
                         onClick={() => saveChapterContent(selectedChapter.id, editTitle, editContent)}
                         disabled={savingChapter}
