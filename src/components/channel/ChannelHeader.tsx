@@ -74,6 +74,19 @@ export function ChannelHeader({ channel, isOwner, bookCount, onChannelUpdate, on
     facebook_url: channel.facebook_url || '',
     linkedin_url: channel.linkedin_url || ''
   });
+
+  // Update edit values when channel prop changes (important for syncing)
+  useEffect(() => {
+    setEditValues({
+      display_name: channel.display_name || channel.name || '',
+      bio: channel.bio || channel.description || '',
+      website_url: channel.website_url || '',
+      instagram_url: channel.instagram_url || '',
+      twitter_url: channel.twitter_url || '',
+      facebook_url: channel.facebook_url || '',
+      linkedin_url: channel.linkedin_url || ''
+    });
+  }, [channel]);
   const [saveLoading, setSaveLoading] = useState(false);
   
   // State for image uploads
@@ -281,7 +294,8 @@ export function ChannelHeader({ channel, isOwner, bookCount, onChannelUpdate, on
     renderDisplay?: (value: string) => React.ReactNode;
   }) => {
     const isEditing = editingField === field;
-    const currentValue = editValues[field as keyof typeof editValues] || value;
+    // Use editValues only when editing, otherwise use the prop value
+    const currentValue = isEditing ? (editValues[field as keyof typeof editValues] || '') : value;
 
     if (!isOwner) {
       return renderDisplay ? renderDisplay(value) : <span className={className}>{value}</span>;
@@ -323,7 +337,11 @@ export function ChannelHeader({ channel, isOwner, bookCount, onChannelUpdate, on
 
     return (
       <div 
-        onClick={() => setEditingField(field)}
+        onClick={() => {
+          // Initialize edit value with current display value when starting to edit
+          setEditValues(prev => ({ ...prev, [field]: value }));
+          setEditingField(field);
+        }}
         className={`${className} cursor-pointer hover:bg-gray-50 rounded px-1 py-0.5 transition-colors group`}
       >
         {renderDisplay ? renderDisplay(value) : value}

@@ -13,6 +13,7 @@ export default function SetupUserPage() {
   const [description, setDescription] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState('');
+  const [hasUserEditedChannelName, setHasUserEditedChannelName] = useState(false);
 
   const supabase = createClient();
 
@@ -23,13 +24,17 @@ export default function SetupUserPage() {
   }, [user, loading, router]);
 
   useEffect(() => {
-    // Auto-generate username from email
+    // Auto-generate username from email, but only set channel name if user hasn't edited it
     if (user?.email) {
       const emailUsername = user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
       setUsername(emailUsername);
-      setChannelName(emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1) + "'s Channel");
+      
+      // Only auto-set channel name if user hasn't manually edited it
+      if (!hasUserEditedChannelName) {
+        setChannelName(emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1) + "'s Channel");
+      }
     }
-  }, [user]);
+  }, [user, hasUserEditedChannelName]);
 
   const createUserChannel = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,7 +123,10 @@ export default function SetupUserPage() {
                 type="text"
                 required
                 value={channelName}
-                onChange={(e) => setChannelName(e.target.value)}
+                onChange={(e) => {
+                  setChannelName(e.target.value);
+                  setHasUserEditedChannelName(true);
+                }}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 placeholder="My Audiobook Channel"
               />
