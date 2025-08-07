@@ -1444,7 +1444,7 @@ The more detail you provide, the better the AI can assist with writing!"
                   </div>
                   
                   {/* Action Row with Buttons and Status */}
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-start items-center gap-4">
                     <div className="flex items-center gap-4 text-sm text-gray-500">
                       {savingChapter && <span className="text-blue-600">💾 Saving...</span>}
                       {showSavedIndicator && <span className="text-green-600">✅ Saved!</span>}
