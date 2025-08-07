@@ -410,7 +410,7 @@ export function AudioGenerationButton({
             ) : (
               <>
                 <FaVolumeUp size={16} />
-                Generate {voiceToUse} Audio
+                Generate Audio
               </>
             )}
           </button>
