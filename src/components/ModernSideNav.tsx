@@ -224,9 +224,6 @@ export function ModernSideNav({
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Biglio</h1>
-            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">
-              V2
-            </span>
           </div>
           <button
             onClick={onClose}

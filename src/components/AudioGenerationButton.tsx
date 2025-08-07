@@ -410,7 +410,7 @@ export function AudioGenerationButton({
             ) : (
               <>
                 <FaVolumeUp size={16} />
-                Generate {voiceToUse === 'female' ? '👩' : '👨'} Audio
+                Generate {voiceToUse} Audio
               </>
             )}
           </button>

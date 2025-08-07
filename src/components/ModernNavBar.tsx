@@ -39,9 +39,6 @@ export function ModernNavBar() {
             className="flex items-center gap-2 text-2xl font-bold text-gray-900 dark:text-white"
           >
             Biglio
-            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">
-              V2
-            </span>
           </Link>
 
           {/* Right: Action Buttons */}
