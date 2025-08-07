@@ -177,6 +177,70 @@ export function AIAssistantChat({
     }
   ];
 
+  // Declare getWelcomeMessage first
+  const getWelcomeMessage = useCallback(() => {
+    if (mode === 'outline') {
+      if (book && currentChapter) {
+        return `📋 **Research Mode Activated**
+
+I'm helping you plan and outline "${book.title}". Currently viewing "${currentChapter.title}".
+
+I can help with:
+• **Chapter Ideas** - Generate creative concepts
+• **Plot Structure** - Plan story arcs and development  
+• **Character Planning** - Design character relationships
+• **Research** - Background info and world-building
+
+Ask me anything about your story or use the quick actions below! 🚀`;
+      } else if (book) {
+        return `📋 **Research Mode for "${book.title}"**
+
+I'm ready to help you plan and outline your book! 
+
+I can help with:
+• **Chapter Ideas** - Generate creative concepts
+• **Plot Structure** - Plan story arcs and development
+• **Character Planning** - Design character relationships  
+• **Research** - Background info and world-building
+
+What would you like to work on first? 📚`;
+      }
+      return `📋 **Research Mode Activated**
+
+I'm here to help you plan and outline your book! I can assist with chapter ideas, plot structure, character development, and research. What would you like to explore? 🔍`;
+    } else {
+      // Write mode
+      if (book && currentChapter) {
+        const hasContent = (currentChapter.content || '').trim().length > 0;
+        const hasOutline = (currentChapter.outline_content || '').trim().length > 0;
+        
+        return `✍️ **Writing Mode for "${currentChapter.title}"**
+
+${hasContent ? `Great! You have ${currentChapter.content.length} characters written so far.` : 'Ready to start writing!'}
+${hasOutline ? `\n📋 **Outline available** - I can use your chapter outline to guide the writing.` : ''}
+
+I can help you:
+• **Start Writing** - Begin with compelling content
+• **Continue Story** - Add to existing content seamlessly  
+• **Improve Writing** - Enhance style, flow, and engagement
+• **General Assistance** - Answer questions or brainstorm
+
+${hasContent ? 'What would you like me to help you with next? 🚀' : 'Ready to bring your story to life? Click "Start Writing" or tell me what you need! ✨'}`;
+      } else if (book) {
+        return `✍️ **Writing Assistant for "${book.title}"**
+
+I'm ready to help you write compelling content! Select a chapter from the sidebar to get started, or I can help you brainstorm ideas.
+
+What would you like to work on? 📝`;
+      }
+      return `✍️ **Writing Mode Activated**
+
+I'm here to help you write engaging, compelling content! Whether you need to start writing, continue your story, or improve existing content, I'm ready to assist.
+
+How can I help you today? ✨`;
+    }
+  }, [book, currentChapter, mode]);
+
   // Initialize chat with welcome message
   useEffect(() => {
     if (!hasInitialized && (book || currentChapter)) {
@@ -199,58 +263,7 @@ export function AIAssistantChat({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const getWelcomeMessage = useCallback(() => {
-    if (mode === 'outline') {
-      if (book && currentChapter) {
-        return `📋 **Research Mode Activated**
 
-I'm helping you plan and outline "${book.title}". Currently viewing "${currentChapter.title}".
-
-I can help with:
-• **Chapter Ideas** - Generate creative concepts
-• **Plot Structure** - Plan story arcs and development  
-• **Character Planning** - Design character relationships
-• **Research** - Background info and world-building
-
-**Context: ${contextMode.charAt(0).toUpperCase() + contextMode.slice(1)} Mode**
-
-What would you like to plan or research?`;
-      } else if (book) {
-        return `📋 **Research Mode** for "${book.title}"\n\nI'm here to help you plan, outline, and research. What aspect of your book would you like to work on?`;
-      }
-      return `📋 **Research Mode**\n\nI'm here to help you plan and outline your book. What would you like to explore?`;
-    } else {
-      if (book && currentChapter) {
-        return `✍️ **Writing Mode Activated**
-
-Ready to write "${currentChapter.title}" in "${book.title}".
-
-I can help you:
-• **Start Writing** - Generate 3500 characters to begin this chapter
-• **Continue Story** - Add 3500 more characters from where you left off  
-• **Character Scenes** - Develop characters (suggestions)
-• **Improve Writing** - Rewrite entire chapter with better style
-
-**Context: ${contextMode.charAt(0).toUpperCase() + contextMode.slice(1)} Mode**
-
-Let's create something amazing!`;
-      } else if (book) {
-        return `✍️ **Writing Mode** for "${book.title}"\n\nI'm here to help you write and improve your content. Select a chapter to begin!`;
-      }
-      return `✍️ **Writing Mode**\n\nI'm ready to help you write! What would you like to work on?`;
-    }
-  }, [mode, book, currentChapter, contextMode]);
-
-  useEffect(() => {
-    // Update welcome message when mode, book, or chapter changes
-    const welcomeMessage: ChatMessage = {
-      id: `welcome-${Date.now()}`,
-      role: 'assistant',
-      content: getWelcomeMessage(),
-      timestamp: new Date()
-    };
-    setMessages([welcomeMessage]);
-  }, [getWelcomeMessage]);
 
   const buildContext = () => {
     // Build chapter summaries for previous chapters (for AI context)
