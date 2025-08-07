@@ -902,8 +902,8 @@ export default function UnifiedBookEditor() {
                   }`}
                 >
                   <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900 truncate">{chapter.title}</h4>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-gray-900 break-words leading-tight">{chapter.title}</h4>
                       <p className="text-xs text-gray-500 mt-1">Chapter {chapter.chapter_number}</p>
                       <p className="text-xs text-gray-500">{chapter.content.length} characters</p>
                     </div>
@@ -948,7 +948,7 @@ export default function UnifiedBookEditor() {
           {mode === 'outline' ? (
             /* OUTLINE MODE */
             <div className="flex-1 overflow-y-auto p-6">
-              <div className="max-w-4xl mx-auto space-y-6">
+              <div className="space-y-6">
                 
                 {/* Editable Outline */}
                 <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
@@ -1218,7 +1218,7 @@ The more detail you provide, the better the AI can assist with writing!"
               {/* Center Panel - Outline Confirmation Screen */}
               {showOutlineConfirmation && outlinePreview.length > 0 && (
                 <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 p-6 overflow-y-auto">
-                  <div className="max-w-4xl w-full">
+                  <div className="w-full">
                     {/* Header */}
                     <div className="bg-white rounded-xl shadow-lg p-6 mb-6 text-center">
                       <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1550,22 +1550,7 @@ The more detail you provide, the better the AI can assist with writing!"
 
         {/* RIGHT PANEL: AI Assistant */}
         <div className="w-96 bg-white border-l border-gray-200 flex flex-col">
-          <div className="p-4 border-b border-gray-200 flex-shrink-0">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-2xl">🤖</span>
-              <h3 className="text-lg font-bold text-gray-900">AI Assistant</h3>
-            </div>
-            <div className="text-sm text-gray-600">
-              {mode === 'outline' ? (
-                <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full">📋 Research Mode</span>
-              ) : (
-                <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full">✍️ Writing Mode</span>
-              )}
-            </div>
-          </div>
-          
-          <div className="flex-1 overflow-hidden">
-            <AIAssistantChat
+          <AIAssistantChat
               book={book}
               currentChapter={selectedChapter ?? undefined}
               chapters={chapters}
@@ -1622,7 +1607,6 @@ The more detail you provide, the better the AI can assist with writing!"
               }}
               className="h-full"
             />
-          </div>
         </div>
       </div>
 
