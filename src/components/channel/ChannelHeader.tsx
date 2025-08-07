@@ -111,8 +111,8 @@ export function ChannelHeader({ channel, isOwner, bookCount, onChannelUpdate, on
       const { data, error } = await supabase
         .from('follows')
         .select('id')
-        .eq('follower_id', user.id)
-        .eq('channel_id', channel.id)
+        .eq('follower_user_id', user.id)
+        .eq('followed_channel_id', channel.id)
         .single();
       
       if (!error && data) {
@@ -138,10 +138,16 @@ export function ChannelHeader({ channel, isOwner, bookCount, onChannelUpdate, on
         const { error } = await supabase
           .from('follows')
           .delete()
-          .eq('follower_id', user.id)
-          .eq('channel_id', channel.id);
+          .eq('follower_user_id', user.id)
+          .eq('followed_channel_id', channel.id);
         
         if (error) throw error;
+        
+        // Decrement follower count using database function
+        const { error: updateError } = await supabase
+          .rpc('decrement_channel_follower_count', { channel_id: channel.id });
+        
+        if (updateError) throw updateError;
         
         setIsFollowing(false);
         setFollowerCount(prev => Math.max(0, prev - 1));
@@ -150,11 +156,17 @@ export function ChannelHeader({ channel, isOwner, bookCount, onChannelUpdate, on
         const { error } = await supabase
           .from('follows')
           .insert({
-            follower_id: user.id,
-            channel_id: channel.id
+            follower_user_id: user.id,
+            followed_channel_id: channel.id
           });
         
         if (error) throw error;
+        
+        // Increment follower count using database function
+        const { error: updateError } = await supabase
+          .rpc('increment_channel_follower_count', { channel_id: channel.id });
+        
+        if (updateError) throw updateError;
         
         setIsFollowing(true);
         setFollowerCount(prev => prev + 1);
