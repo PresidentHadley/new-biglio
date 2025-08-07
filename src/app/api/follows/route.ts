@@ -7,10 +7,26 @@ export async function POST(request: NextRequest) {
   try {
     const cookieStore = cookies();
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    
+    console.log('🔍 Follows API: Getting user...');
+    console.log('🍪 Follows API: Cookies available:', Object.keys(cookieStore).length > 0 ? 'Yes' : 'No');
+    
     const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    console.log('👤 Follows API User:', user ? `${user.email} (${user.id})` : 'null');
+    console.log('❌ Follows API Auth Error:', authError);
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      console.log('🚨 Follows API: Returning 401 - No user or auth error');
+      return NextResponse.json({ 
+        error: 'Unauthorized',
+        debug: {
+          hasUser: !!user,
+          authError: authError?.message || null,
+          timestamp: new Date().toISOString(),
+          hasCookies: Object.keys(cookieStore).length > 0
+        }
+      }, { status: 401 });
     }
 
     const { channel_id } = await request.json();

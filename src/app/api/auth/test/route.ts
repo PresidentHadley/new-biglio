@@ -6,25 +6,45 @@ import { cookies } from 'next/headers';
 export async function GET(request: NextRequest) {
   try {
     const cookieStore = cookies();
+    
+    // Get all cookies for debugging  
+    const allCookies: Record<string, string> = {};
+    const cookieNames: string[] = [];
+    
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
     
     console.log('🔍 Testing authentication...');
+    console.log('🍪 Cookie store ready');
     
+    // Test session first
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    console.log('📄 Session:', session ? 'exists' : 'null');
+    console.log('❌ Session Error:', sessionError);
+    
+    // Then test user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
     console.log('👤 User:', user ? `${user.email} (${user.id})` : 'null');
     console.log('❌ Auth Error:', authError);
     
     return NextResponse.json({
       authenticated: !!user,
+      hasSession: !!session,
       user: user ? {
         id: user.id,
         email: user.email,
         created_at: user.created_at
       } : null,
-      error: authError?.message || null,
+      session: session ? {
+        expires_at: session.expires_at,
+        token_type: session.token_type
+      } : null,
+      authError: authError?.message || null,
+      sessionError: sessionError?.message || null,
       timestamp: new Date().toISOString(),
-      cookieCount: Object.keys(cookieStore).length
+      cookieCount: cookieNames.length,
+      cookieNames: cookieNames,
+      userAgent: request.headers.get('user-agent'),
+      origin: request.headers.get('origin')
     });
   } catch (error) {
     console.error('🚨 Auth test error:', error);
