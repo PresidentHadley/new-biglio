@@ -82,6 +82,8 @@ export default function UnifiedBookEditor() {
   const [isGeneratingOutline, setIsGeneratingOutline] = useState(false);
   const [generatingChapterCount, setGeneratingChapterCount] = useState(1);
   const [showOutlineSuccess, setShowOutlineSuccess] = useState(false);
+  const [outlinePreview, setOutlinePreview] = useState<any[]>([]);
+  const [showOutlineConfirmation, setShowOutlineConfirmation] = useState(false);
 
   // Chapter Edit Modal State
   const [editingChapter, setEditingChapter] = useState<Chapter | null>(null);
@@ -209,12 +211,12 @@ export default function UnifiedBookEditor() {
 
       if (error) throw error;
       
-      // Update local state with new summary
-      if (summary) {
-        setChapters(prev => prev.map(ch => 
-          ch.id === chapterId ? { ...ch, summary } : ch
-        ));
-      }
+      // Update local state with new content and summary
+      setChapters(prev => prev.map(ch => 
+        ch.id === chapterId 
+          ? { ...ch, title, content, summary: summary || ch.summary }
+          : ch
+      ));
 
       // Show save success feedback
       setLastSaved(new Date());
@@ -241,6 +243,13 @@ export default function UnifiedBookEditor() {
         .eq('id', chapterId);
 
       if (error) throw error;
+      
+      // Update local state with new outline content
+      setChapters(prev => prev.map(ch => 
+        ch.id === chapterId 
+          ? { ...ch, title, outline_content: outlineContent }
+          : ch
+      ));
 
       // Show save success feedback
       setLastSaved(new Date());
@@ -526,17 +535,32 @@ export default function UnifiedBookEditor() {
       // Force save the current chapter before switching
       if (mode === 'write') {
         await saveChapterContent(selectedChapter.id, editTitle, editContent);
+        // Update the chapters state to reflect the save
+        setChapters(prev => prev.map(ch => 
+          ch.id === selectedChapter.id 
+            ? { ...ch, title: editTitle, content: editContent }
+            : ch
+        ));
       } else {
         await saveChapterOutline(selectedChapter.id, editTitle, editOutlineContent);
+        // Update the chapters state to reflect the save
+        setChapters(prev => prev.map(ch => 
+          ch.id === selectedChapter.id 
+            ? { ...ch, title: editTitle, outline_content: editOutlineContent }
+            : ch
+        ));
       }
     }
 
+    // Get the fresh chapter data to ensure we have the latest content
+    const freshChapter = chapters.find(ch => ch.id === chapter.id) || chapter;
+
     // Update selected chapter and editor content
-    setSelectedChapter(chapter);
-    setEditTitle(chapter.title);
-    setEditContent(chapter.content || '');
-    setEditOutlineContent(chapter.outline_content || '');
-  }, [selectedChapter, editTitle, editContent, editOutlineContent, mode, saveChapterContent, saveChapterOutline]);
+    setSelectedChapter(freshChapter);
+    setEditTitle(freshChapter.title);
+    setEditContent(freshChapter.content || '');
+    setEditOutlineContent(freshChapter.outline_content || '');
+  }, [selectedChapter, editTitle, editContent, editOutlineContent, mode, saveChapterContent, saveChapterOutline, chapters]);
 
   // Auto-save when content changes (mode-aware)
   useEffect(() => {
@@ -580,71 +604,11 @@ export default function UnifiedBookEditor() {
       });
 
       if (result && result.length > 0) {
-        console.log(`📚 Creating ${result.length} chapters in database...`);
+        console.log(`📚 AI generated ${result.length} chapters. Showing confirmation...`);
         
-        // Create chapters from AI outline with fresh data fetching
-        let successCount = 0;
-        
-        for (let i = 0; i < result.length; i++) {
-          const chapter = result[i];
-          
-          try {
-            // Fetch fresh chapter data before each insert to avoid conflicts
-            const { data: freshChapters } = await supabase
-              .from('chapters')
-              .select('chapter_number, order_index')
-              .eq('biglio_id', bookId)
-              .order('chapter_number', { ascending: false });
-            
-            const chapterNumber = ((freshChapters?.[0]?.chapter_number as number) || 0) + 1;
-            const orderIndex = ((freshChapters?.[0]?.order_index as number) || 0) + 1;
-            console.log(`Creating chapter ${chapterNumber}: "${chapter.title}"`);
-            
-            const insertResult = await supabase
-              .from('chapters')
-              .insert({
-                biglio_id: bookId,
-                title: chapter.title,
-                content: '', // Start with empty content for writing mode
-                outline_content: `${chapter.summary || ''}\n\nKey Points:\n${chapter.keyPoints ? chapter.keyPoints.map(point => `• ${point}`).join('\n') : ''}`,
-                summary: null,
-                chapter_number: chapterNumber,
-                order_index: orderIndex,
-                is_published: false,
-                duration_seconds: 0
-              });
-              
-            if (insertResult.error) {
-              console.error(`Error creating chapter ${chapterNumber}:`, insertResult.error);
-              // Continue with other chapters instead of failing entirely
-            } else {
-              console.log(`✓ Successfully created chapter ${chapterNumber}`);
-              successCount++;
-            }
-          } catch (error) {
-            console.error(`Failed to create chapter "${chapter.title}":`, error);
-          }
-        }
-
-        // Update book's total chapters based on actual success count
-        if (successCount > 0) {
-          const newTotalChapters = chapters.length + successCount;
-          console.log(`Updating book total chapters to: ${newTotalChapters} (${successCount} created successfully)`);
-          
-          await supabase
-            .from('biglios')
-            .update({ total_chapters: newTotalChapters })
-            .eq('id', bookId);
-        }
-
-        setAiPrompt('');
-        await fetchChapters();
-        await fetchBookData();
-        
-        // Show success screen
-        setShowOutlineSuccess(true);
-        
-        console.log(`AI outline generation completed! Created ${successCount}/${result.length} chapters successfully.`);
+        // Show outline confirmation instead of immediately creating chapters
+        setOutlinePreview(result);
+        setShowOutlineConfirmation(true);
       } else {
         console.warn('⚠️ AI returned empty or invalid result:', result);
         alert('AI outline generation returned no chapters. Please try again.');
@@ -653,6 +617,86 @@ export default function UnifiedBookEditor() {
       console.error('❌ Error generating outline:', error);
       // Show user-friendly error
       alert(`⚠️ Outline generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsGeneratingOutline(false);
+    }
+  };
+
+  const confirmOutlineAndCreateChapters = async () => {
+    if (!book || outlinePreview.length === 0) return;
+
+    try {
+      setIsGeneratingOutline(true);
+      console.log(`📚 Creating ${outlinePreview.length} chapters in database...`);
+      
+      // Create chapters from AI outline with fresh data fetching
+      let successCount = 0;
+      
+      for (let i = 0; i < outlinePreview.length; i++) {
+        const chapter = outlinePreview[i];
+        
+        try {
+          // Fetch fresh chapter data before each insert to avoid conflicts
+          const { data: freshChapters } = await supabase
+            .from('chapters')
+            .select('chapter_number, order_index')
+            .eq('biglio_id', bookId)
+            .order('chapter_number', { ascending: false });
+          
+          const chapterNumber = ((freshChapters?.[0]?.chapter_number as number) || 0) + 1;
+          const orderIndex = ((freshChapters?.[0]?.order_index as number) || 0) + 1;
+          console.log(`Creating chapter ${chapterNumber}: "${chapter.title}"`);
+          
+          const insertResult = await supabase
+            .from('chapters')
+            .insert({
+              biglio_id: bookId,
+              title: chapter.title,
+              content: '', // Start with empty content for writing mode
+              outline_content: `${chapter.summary || ''}\n\nKey Points:\n${chapter.keyPoints ? chapter.keyPoints.map(point => `• ${point}`).join('\n') : ''}`,
+              summary: null,
+              chapter_number: chapterNumber,
+              order_index: orderIndex,
+              is_published: false,
+              duration_seconds: 0
+            });
+            
+          if (insertResult.error) {
+            console.error(`Error creating chapter ${chapterNumber}:`, insertResult.error);
+            // Continue with other chapters instead of failing entirely
+          } else {
+            console.log(`✓ Successfully created chapter ${chapterNumber}`);
+            successCount++;
+          }
+        } catch (error) {
+          console.error(`Failed to create chapter "${chapter.title}":`, error);
+        }
+      }
+
+      // Update book's total chapters based on actual success count
+      if (successCount > 0) {
+        const newTotalChapters = chapters.length + successCount;
+        console.log(`Updating book total chapters to: ${newTotalChapters} (${successCount} created successfully)`);
+        
+        await supabase
+          .from('biglios')
+          .update({ total_chapters: newTotalChapters })
+          .eq('id', bookId);
+      }
+
+      setAiPrompt('');
+      await fetchChapters();
+      await fetchBookData();
+      
+      // Show success screen
+      setShowOutlineConfirmation(false);
+      setOutlinePreview([]);
+      setShowOutlineSuccess(true);
+      
+      console.log(`AI outline generation completed! Created ${successCount}/${outlinePreview.length} chapters successfully.`);
+    } catch (error) {
+      console.error('❌ Error creating chapters:', error);
+      alert(`⚠️ Chapter creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsGeneratingOutline(false);
     }
@@ -712,15 +756,15 @@ export default function UnifiedBookEditor() {
 
   // Loading state
   if (isLoading) {
-    return (
+  return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
           <p className="text-gray-900 mt-4">Loading book...</p>
-        </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   // No book found
   if (!book) {
@@ -1165,87 +1209,195 @@ The more detail you provide, the better the AI can assist with writing!"
                 </div>
               )}
 
-              {/* Center Panel - Outline Success Screen */}
-              {showOutlineSuccess && chapters.length > 0 && (
-                <div className="flex-1 flex items-center justify-center bg-gray-50 p-6">
-                  <div className="max-w-2xl w-full">
-                    {/* Success Message */}
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6 text-center">
-                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-2xl">✅</span>
+              {/* Center Panel - Outline Confirmation Screen */}
+              {showOutlineConfirmation && outlinePreview.length > 0 && (
+                <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 p-6 overflow-y-auto">
+                  <div className="max-w-4xl w-full">
+                    {/* Header */}
+                    <div className="bg-white rounded-xl shadow-lg p-6 mb-6 text-center">
+                      <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span className="text-2xl text-white">🤖</span>
                       </div>
-                      <h2 className="text-2xl font-bold text-green-800 mb-2">Great! Your Outline is Ready</h2>
-                      <p className="text-green-700">
-                        You now have {chapters.length} chapter{chapters.length > 1 ? 's' : ''} outlined with AI-generated summaries. Here&apos;s what to do next:
+                      <h2 className="text-2xl font-bold text-gray-900 mb-2">AI Generated Your Outline!</h2>
+                      <p className="text-gray-600">
+                        Review the <span className="font-semibold text-blue-600">{outlinePreview.length} chapters</span> below. You can accept them as-is, or regenerate for different results.
                       </p>
                     </div>
 
-                    {/* Next Steps */}
-                    <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        📝 Next Steps
-                      </h3>
-                      
-                      <div className="space-y-4">
-                        <div className="flex items-start gap-3">
-                          <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
-                            1
-                          </div>
-                          <div>
-                            <h4 className="font-medium text-gray-900">Review Your Chapters</h4>
-                            <p className="text-sm text-gray-600">
-                              Click on each chapter in the left panel to see its summary. Want to make changes? Click the pencil icon (✏️) next to any chapter title.
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-start gap-3">
-                          <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
-                            2
-                          </div>
-                          <div>
-                            <h4 className="font-medium text-gray-900">Start Writing</h4>
-                            <p className="text-sm text-gray-600">
-                              When you&apos;re ready to start writing, click the button below or switch to <strong>Write Mode</strong> in the top toolbar.
-                            </p>
+                    {/* Chapter Preview Grid */}
+                    <div className="grid gap-4 mb-6">
+                      {outlinePreview.map((chapter, index) => (
+                        <div key={index} className="bg-white rounded-lg border border-gray-200 p-4 hover:border-blue-300 transition-colors">
+                          <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
+                              {index + 1}
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-gray-900 mb-2">{chapter.title}</h3>
+                              <p className="text-sm text-gray-600 mb-3">{chapter.summary}</p>
+                              {chapter.keyPoints && chapter.keyPoints.length > 0 && (
+                                <div className="space-y-1">
+                                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Key Points:</p>
+                                  <ul className="text-xs text-gray-600 space-y-1">
+                                    {chapter.keyPoints.slice(0, 3).map((point: string, pointIndex: number) => (
+                                      <li key={pointIndex} className="flex items-start gap-1">
+                                        <span className="text-blue-400 mt-1">•</span>
+                                        <span>{point}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
-                        
-                        <div className="flex items-start gap-3">
-                          <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
-                            3
-                          </div>
-                          <div>
-                            <h4 className="font-medium text-gray-900">Use AI Assistant</h4>
-                            <p className="text-sm text-gray-600">
-                              The AI assistant on the right can help you brainstorm, overcome writer&apos;s block, or expand your ideas.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
+                      ))}
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="space-y-3">
+                    <div className="bg-white rounded-lg p-6 flex flex-col sm:flex-row gap-4">
                       <button
                         onClick={() => {
-                          setMode('write');
-                          setShowOutlineSuccess(false);
-                          if (chapters.length > 0) {
-                            selectChapter(chapters[0]);
-                          }
+                          setShowOutlineConfirmation(false);
+                          setOutlinePreview([]);
                         }}
-                        className="w-full px-6 py-4 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                        className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
                       >
-                        ▶️ Start Writing Your Book
+                        ❌ Regenerate Different Outline
                       </button>
-                      
                       <button
-                        onClick={() => setShowOutlineSuccess(false)}
-                        className="w-full px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+                        onClick={confirmOutlineAndCreateChapters}
+                        disabled={isGeneratingOutline}
+                        className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                       >
-                        📋 I&apos;ll explore the chapters first
+                        {isGeneratingOutline ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Creating Chapters...
+                          </>
+                        ) : (
+                          <>✅ Accept & Create Chapters</>
+                        )}
                       </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Center Panel - Outline Success Screen */}
+              {showOutlineSuccess && chapters.length > 0 && (
+                <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 p-6">
+                  <div className="max-w-3xl w-full">
+                    {/* Success Message */}
+                    <div className="bg-white border border-green-200 rounded-xl shadow-lg p-8 mb-6 text-center">
+                      <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                        <span className="text-3xl">🎉</span>
+                      </div>
+                      <h2 className="text-3xl font-bold text-gray-900 mb-3">Fantastic! Your Book Outline is Ready</h2>
+                      <p className="text-lg text-gray-700 mb-4">
+                        You now have <span className="font-semibold text-green-600">{chapters.length} chapter{chapters.length > 1 ? 's' : ''}</span> outlined with AI-generated summaries. 
+                      </p>
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                        <p className="text-blue-800 font-medium">
+                          💡 <strong>What&apos;s Next?</strong> You can either refine your chapter outlines first, or jump straight into writing. The AI will help you every step of the way!
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Two-Path Approach */}
+                    <div className="grid md:grid-cols-2 gap-6 mb-6">
+                      {/* Path 1: Review & Refine */}
+                      <div className="bg-white rounded-xl border-2 border-purple-200 p-6 hover:border-purple-300 transition-colors">
+                        <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+                          <span className="text-2xl">📋</span>
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-3">Path 1: Review & Refine Outlines</h3>
+                        <p className="text-gray-600 mb-4">
+                          Take time to review and customize each chapter outline. This helps ensure your story flows exactly as you envision.
+                        </p>
+                        <div className="space-y-2 text-sm text-gray-600 mb-4">
+                          <div className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 bg-purple-400 rounded-full"></span>
+                            Click chapters in the left panel to view/edit
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 bg-purple-400 rounded-full"></span>
+                            Add plot details, character notes, and key scenes
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 bg-purple-400 rounded-full"></span>
+                            Use the pencil icon (✏️) to edit titles
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setShowOutlineSuccess(false)}
+                          className="w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
+                        >
+                          📝 Review Chapters First
+                        </button>
+                      </div>
+
+                      {/* Path 2: Start Writing */}
+                      <div className="bg-white rounded-xl border-2 border-green-200 p-6 hover:border-green-300 transition-colors">
+                        <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+                          <span className="text-2xl">✍️</span>
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-3">Path 2: Start Writing Now</h3>
+                        <p className="text-gray-600 mb-4">
+                          Jump right into writing! The AI will help you develop each chapter based on the outlines already created.
+                        </p>
+                        <div className="space-y-2 text-sm text-gray-600 mb-4">
+                          <div className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
+                            AI assistant provides writing suggestions
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
+                            Auto-save keeps your work safe
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
+                            Generate audio anytime for each chapter
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setMode('write');
+                            setShowOutlineSuccess(false);
+                            if (chapters.length > 0) {
+                              selectChapter(chapters[0]);
+                            }
+                          }}
+                          className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                        >
+                          🚀 Start Writing Chapter 1
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Pro Tips */}
+                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4">
+                      <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                        💡 Pro Tips for Success
+                      </h4>
+                      <div className="grid md:grid-cols-2 gap-3 text-sm text-gray-600">
+                        <div className="flex items-start gap-2">
+                          <span className="text-blue-500 mt-0.5">•</span>
+                          <span>The AI remembers your book&apos;s context and writing style</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-blue-500 mt-0.5">•</span>
+                          <span>You can switch between Outline and Write modes anytime</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-blue-500 mt-0.5">•</span>
+                          <span>Use the AI assistant to overcome writer&apos;s block</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-blue-500 mt-0.5">•</span>
+                          <span>Generate audio at any time to hear your progress</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
