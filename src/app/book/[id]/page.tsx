@@ -1576,24 +1576,41 @@ The more detail you provide, the better the AI can assist with writing!"
               onInsertContent={(content, actionType) => {
                 if (selectedChapter) {
                   if (mode === 'write') {
+                    let newContent = '';
                     if (actionType === 'improve') {
                       // Replace entire content for improvement
+                      newContent = content;
                       setEditContent(content);
                     } else if (actionType === 'start') {
                       // For start writing, add at beginning if empty, otherwise add at current position
-                      setEditContent(prev => prev.trim() === '' ? content : prev + '\n\n' + content);
+                      newContent = editContent.trim() === '' ? content : editContent + '\n\n' + content;
+                      setEditContent(newContent);
                     } else {
                       // Continue and other actions append to existing content
-                      setEditContent(prev => prev + '\n\n' + content);
+                      newContent = editContent + '\n\n' + content;
+                      setEditContent(newContent);
                     }
+                    
+                    // Immediately save the inserted content
+                    setTimeout(() => {
+                      saveChapterContent(selectedChapter.id, editTitle, newContent);
+                    }, 100);
                   } else if (mode === 'outline') {
+                    let newOutlineContent = '';
                     if (actionType === 'improve') {
                       // Replace entire outline content for improvement
+                      newOutlineContent = content;
                       setEditOutlineContent(content);
                     } else {
                       // Add to outline content
-                      setEditOutlineContent(prev => prev + '\n\n' + content);
+                      newOutlineContent = editOutlineContent + '\n\n' + content;
+                      setEditOutlineContent(newOutlineContent);
                     }
+                    
+                    // Immediately save the inserted outline content
+                    setTimeout(() => {
+                      saveChapterOutline(selectedChapter.id, editTitle, newOutlineContent);
+                    }, 100);
                   }
                 }
               }}

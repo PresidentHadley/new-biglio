@@ -65,7 +65,7 @@ export function detectBookType(genre?: string): BookType {
  */
 export function getWritingStyleGuidance(bookType: BookType): string {
   if (bookType === 'non-fiction') {
-    return `Focus on practical advice, clear explanations, frameworks, case studies, and actionable content. Use instructional language that teaches and guides the reader.`;
+    return `Write in a conversational, engaging tone. Use "you" to address readers personally. Share insights like you're having a friendly conversation. Include relatable examples and stories. Break complex concepts into simple language. Ask rhetorical questions. Use analogies and metaphors. Avoid academic jargon - keep it human and approachable.`;
   } else {
     return `Focus on storytelling, character development, plot progression, emotional engagement, and narrative flow. Create immersive scenes and compelling dialogue.`;
   }

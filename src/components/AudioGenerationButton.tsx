@@ -30,12 +30,18 @@ export function AudioGenerationButton({
 }: AudioGenerationButtonProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(existingAudioUrl || null);
+
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<string>('');
   const [showVoiceSelection, setShowVoiceSelection] = useState(false);
   const [showComingSoonModal, setShowComingSoonModal] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+
+  // Update audio URL when existingAudioUrl prop changes
+  useEffect(() => {
+    setAudioUrl(existingAudioUrl || null);
+  }, [existingAudioUrl]);
 
   // Get the voice to use (book preference or default)
   const voiceToUse = bookVoicePreference || 'female';

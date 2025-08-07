@@ -71,6 +71,7 @@ export function AIAssistantChat({
 }: AIAssistantChatProps) {
   
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [hasInitialized, setHasInitialized] = useState(false);
   const [inputMessage, setInputMessage] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -175,6 +176,20 @@ export function AIAssistantChat({
       description: "Complete context with optimization"
     }
   ];
+
+  // Initialize chat with welcome message
+  useEffect(() => {
+    if (!hasInitialized && (book || currentChapter)) {
+      const welcomeMessage: ChatMessage = {
+        id: `welcome-${Date.now()}`,
+        role: 'assistant',
+        content: getWelcomeMessage(),
+        timestamp: new Date()
+      };
+      setMessages([welcomeMessage]);
+      setHasInitialized(true);
+    }
+  }, [book, currentChapter, hasInitialized, getWelcomeMessage]);
 
   useEffect(() => {
     scrollToBottom();
