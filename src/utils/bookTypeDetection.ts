@@ -65,9 +65,9 @@ export function detectBookType(genre?: string): BookType {
  */
 export function getWritingStyleGuidance(bookType: BookType): string {
   if (bookType === 'non-fiction') {
-    return `Write in a conversational, engaging tone. Use "you" to address readers personally. Share insights like you're having a friendly conversation. Include relatable examples and stories. Break complex concepts into simple language. Ask rhetorical questions. Use analogies and metaphors. Avoid academic jargon - keep it human and approachable.`;
+    return `Write in a conversational, engaging tone. Use "you" to address readers personally. Share insights like you're having a friendly conversation. Include relatable examples and stories. Break complex concepts into simple language. Ask rhetorical questions. Use analogies and metaphors. Avoid academic jargon - keep it human and approachable. IMPORTANT: Keep sentences under 800 characters for audio compatibility - break long thoughts into shorter, natural sentences.`;
   } else {
-    return `Focus on storytelling, character development, plot progression, emotional engagement, and narrative flow. Create immersive scenes and compelling dialogue.`;
+    return `Focus on storytelling, character development, plot progression, emotional engagement, and narrative flow. Create immersive scenes and compelling dialogue. IMPORTANT: Keep sentences under 800 characters for audio compatibility - use natural breaks and pauses in your narrative.`;
   }
 }
 

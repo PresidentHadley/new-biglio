@@ -64,6 +64,14 @@ AUDIO-FOCUSED GUIDELINES:
 - Consider rhythm, pacing, and flow for audio consumption
 - Avoid overly complex sentences that are hard to follow aurally
 
+CRITICAL TTS CONSTRAINTS (MUST FOLLOW):
+- Keep sentences under 800 characters for audio generation compatibility
+- Break long thoughts into multiple shorter sentences with natural pauses
+- Use periods, exclamation points, or question marks to end sentences clearly
+- Avoid run-on sentences with multiple clauses - split them up
+- Consider that each sentence will be converted to audio individually
+- Aim for sentences that are naturally speakable in one breath
+
 ${writingGuidance}
 ${audienceGuidance}`;
 
