@@ -19,6 +19,42 @@ const voiceMap: { [key: string]: string } = {
   'female': 'en-US-Chirp3-HD-Aoede'
 };
 
+// Helper function to split long sentences that exceed Google TTS byte limit
+function splitLongSentence(sentence: string, maxBytes: number = 800): string[] {
+  // If sentence is under the limit, return as-is
+  if (Buffer.byteLength(sentence, 'utf8') <= maxBytes) {
+    return [sentence];
+  }
+  
+  const parts: string[] = [];
+  const words = sentence.split(' ');
+  let currentPart = '';
+  
+  for (const word of words) {
+    const testPart = currentPart ? `${currentPart} ${word}` : word;
+    
+    // Check if adding this word would exceed the byte limit
+    if (Buffer.byteLength(testPart, 'utf8') > maxBytes) {
+      if (currentPart) {
+        parts.push(currentPart.trim());
+        currentPart = word;
+      } else {
+        // Single word is too long, force split it
+        parts.push(word);
+        currentPart = '';
+      }
+    } else {
+      currentPart = testPart;
+    }
+  }
+  
+  if (currentPart) {
+    parts.push(currentPart.trim());
+  }
+  
+  return parts;
+}
+
 // Helper function to chunk text for TTS
 function chunkText(text: string, maxLength: number = 4000): string[] {
   const chunks: string[] = [];
@@ -26,11 +62,18 @@ function chunkText(text: string, maxLength: number = 4000): string[] {
   const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
   
   for (const sentence of sentences) {
-    if ((currentChunk + sentence).length <= maxLength) {
-      currentChunk += sentence + '. ';
-    } else {
-      if (currentChunk) chunks.push(currentChunk.trim());
-      currentChunk = sentence + '. ';
+    // Split long sentences to avoid Google TTS 900-byte limit
+    const sentenceParts = splitLongSentence(sentence.trim());
+    
+    for (const part of sentenceParts) {
+      const partWithPunctuation = part + '. ';
+      
+      if ((currentChunk + partWithPunctuation).length <= maxLength) {
+        currentChunk += partWithPunctuation;
+      } else {
+        if (currentChunk) chunks.push(currentChunk.trim());
+        currentChunk = partWithPunctuation;
+      }
     }
   }
   
