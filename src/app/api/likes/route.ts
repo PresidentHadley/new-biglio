@@ -7,10 +7,23 @@ export async function POST(request: NextRequest) {
   try {
     const cookieStore = cookies();
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    
+    console.log('🔍 Likes API: Getting user...');
     const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    console.log('👤 Likes API User:', user ? `${user.email} (${user.id})` : 'null');
+    console.log('❌ Likes API Auth Error:', authError);
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      console.log('🚨 Likes API: Returning 401 - No user or auth error');
+      return NextResponse.json({ 
+        error: 'Unauthorized',
+        debug: {
+          hasUser: !!user,
+          authError: authError?.message || null,
+          timestamp: new Date().toISOString()
+        }
+      }, { status: 401 });
     }
 
     const { biglio_id } = await request.json();
