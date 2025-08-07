@@ -192,7 +192,18 @@ ${audienceGuidance}`;
     });
     
     const responseContent = response.content[0];
-    const aiMessage = responseContent.type === 'text' ? responseContent.text : '';
+    let aiMessage = responseContent.type === 'text' ? responseContent.text : '';
+    
+    // Apply content filtering/sanitization (from old system)
+    aiMessage = aiMessage.replace(/four hundred fifty-one degrees Fahrenheit/g, '451f');
+    
+    // Optional: Filter common AI buzzwords that don't sound natural in audiobooks
+    aiMessage = aiMessage.replace(/\bdelve into\b/gi, 'explore');
+    aiMessage = aiMessage.replace(/\bdelve deeper\b/gi, 'explore further');
+    aiMessage = aiMessage.replace(/\butilize\b/gi, 'use');
+    aiMessage = aiMessage.replace(/\bcommence\b/gi, 'begin');
+    aiMessage = aiMessage.replace(/\bunveil\b/gi, 'reveal');
+    aiMessage = aiMessage.replace(/\bcomprehensive\b/gi, 'complete');
     
     return NextResponse.json({
       success: true,

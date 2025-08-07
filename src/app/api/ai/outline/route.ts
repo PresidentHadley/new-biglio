@@ -129,7 +129,18 @@ ${existingOutline ? `\nExisting outline to improve upon:\n${JSON.stringify(exist
     });
     
     const responseContent = response.content[0];
-    const aiResponse = responseContent.type === 'text' ? responseContent.text : '';
+    let aiResponse = responseContent.type === 'text' ? responseContent.text : '';
+    
+    // Apply content filtering/sanitization (from old system)
+    aiResponse = aiResponse.replace(/four hundred fifty-one degrees Fahrenheit/g, '451f');
+    
+    // Filter common AI buzzwords in outline content
+    aiResponse = aiResponse.replace(/\bdelve into\b/gi, 'explore');
+    aiResponse = aiResponse.replace(/\bdelve deeper\b/gi, 'explore further');
+    aiResponse = aiResponse.replace(/\butilize\b/gi, 'use');
+    aiResponse = aiResponse.replace(/\bcommence\b/gi, 'begin');
+    aiResponse = aiResponse.replace(/\bunveil\b/gi, 'reveal');
+    aiResponse = aiResponse.replace(/\bcomprehensive\b/gi, 'complete');
     
     // Try to parse JSON response
     let outline;
