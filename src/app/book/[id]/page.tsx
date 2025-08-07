@@ -1429,26 +1429,27 @@ The more detail you provide, the better the AI can assist with writing!"
             /* WRITE MODE - Always Editable */
             selectedChapter ? (
               <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Chapter Header */}
-                <div className="p-6 border-b border-gray-200 bg-white flex-shrink-0">
+                {/* Simplified Chapter Header */}
+                <div className="p-4 border-b border-gray-200 bg-white flex-shrink-0">
                   <div className="flex justify-between items-center">
                     <div className="flex-1">
                       <input
                         type="text"
                         value={editTitle}
                         onChange={(e) => setEditTitle(e.target.value)}
-                        className="text-2xl font-bold text-gray-900 bg-transparent border-none outline-none focus:bg-white focus:border focus:border-blue-300 focus:rounded px-2 py-1 -mx-2 -my-1 w-full"
+                        className="text-xl font-bold text-gray-900 bg-transparent border-none outline-none focus:bg-white focus:border focus:border-blue-300 focus:rounded px-2 py-1 -mx-2 -my-1 w-full"
                         placeholder="Chapter title"
                       />
-                      <p className="text-gray-600">Chapter {selectedChapter.chapter_number} 
-                        {savingChapter && <span className="text-blue-600 ml-2">💾 Saving...</span>}
-                        {showSavedIndicator && <span className="text-green-600 ml-2">✅ Saved!</span>}
+                      <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
+                        <span>Chapter {selectedChapter.chapter_number}</span>
+                        {savingChapter && <span className="text-blue-600">💾 Saving...</span>}
+                        {showSavedIndicator && <span className="text-green-600">✅ Saved!</span>}
                         {lastSaved && !savingChapter && !showSavedIndicator && (
-                          <span className="text-gray-400 ml-2 text-sm">
+                          <span className="text-gray-400">
                             Last saved: {lastSaved.toLocaleTimeString()}
                           </span>
                         )}
-                      </p>
+                      </div>
                     </div>
                     <div className="flex gap-3">
                       <AudioGenerationButton
@@ -1471,13 +1472,13 @@ The more detail you provide, the better the AI can assist with writing!"
                   </div>
                 </div>
 
-                {/* Direct Editor - No Edit Button Needed */}
-                <div className="flex-1 p-6 overflow-y-auto">
-                  <div className="space-y-4">
+                {/* Direct Editor - Optimized Spacing */}
+                <div className="flex-1 p-4 overflow-y-auto">
+                  <div className="space-y-3">
                     <textarea
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
-                      className={`w-full h-96 p-4 bg-white text-gray-900 rounded border leading-relaxed focus:outline-none resize-none text-base ${
+                      className={`w-full h-[calc(100vh-280px)] p-4 bg-white text-gray-900 rounded border leading-relaxed focus:outline-none resize-none text-base ${
                         isOverLimit() 
                           ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200' 
                           : isNearLimit()
@@ -1511,11 +1512,11 @@ The more detail you provide, the better the AI can assist with writing!"
                     </div>
                     
                     {/* Save Button at bottom */}
-                    <div className="flex justify-center pt-4">
+                    <div className="flex justify-center pt-2">
                       <button
                         onClick={() => saveChapterContent(selectedChapter.id, editTitle, editContent)}
                         disabled={savingChapter}
-                        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
                       >
                         {savingChapter ? (
                           <>

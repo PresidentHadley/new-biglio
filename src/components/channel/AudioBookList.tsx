@@ -14,7 +14,8 @@ import {
   FaEllipsisV,
   FaRocket,
   FaCheck,
-  FaImage
+  FaImage,
+  FaEdit
 } from 'react-icons/fa';
 import { ImagePicker } from '@/components/ImagePicker';
 
@@ -382,16 +383,16 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
         </div>
       </div>
 
-      <div className="grid gap-6">
+      <div className="grid gap-4 sm:gap-6">
         {books.map((book) => (
           <div key={book.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             
             {/* Book Header */}
-            <div className="p-6">
-              <div className="flex items-start gap-6">
+            <div className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
                 
-                {/* Cover Image */}
-                <div className="relative w-24 h-24 md:w-32 md:h-32 flex-shrink-0">
+                {/* Cover Image - Larger on mobile, centered */}
+                <div className="relative w-32 h-32 sm:w-24 sm:h-24 md:w-32 md:h-32 flex-shrink-0 mx-auto sm:mx-0">
                   <div className="w-full h-full rounded-lg overflow-hidden bg-gray-100">
                     {book.cover_url ? (
                       <Image
@@ -432,11 +433,11 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
                 </div>
 
                 {/* Book Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0 w-full sm:w-auto text-center sm:text-left">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-3">
-                        <h3 className="text-xl font-bold text-gray-900 truncate">
+                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-3">
+                        <h3 className="text-lg sm:text-xl font-bold text-gray-900 truncate">
                           {book.title}
                         </h3>
                         {!book.is_published && (
@@ -446,8 +447,8 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
                         )}
                       </div>
                       
-                      {/* Stats */}
-                      <div className="flex items-center gap-6 mt-2 text-sm text-gray-600">
+                      {/* Stats - Stack on mobile, row on desktop */}
+                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-6 mt-3 text-sm text-gray-600">
                         <div className="flex items-center gap-1">
                           <FaBook className="text-blue-500" />
                           <span>{book.chapter_count} chapters</span>
@@ -456,78 +457,98 @@ export function AudioBookList({ books, isOwner }: AudioBookListProps) {
                           <FaClock className="text-green-500" />
                           <span>{formatDuration(book.total_duration)}</span>
                         </div>
-                        <div className="text-gray-500">
+                        <div className="text-gray-500 text-xs sm:text-sm">
                           {formatDate(book.created_at)}
                         </div>
                       </div>
 
                       {/* Description */}
                       {book.description && (
-                        <p className="mt-3 text-gray-700 leading-relaxed line-clamp-3">
+                        <p className="mt-3 text-gray-700 leading-relaxed line-clamp-3 text-sm sm:text-base">
                           {book.description}
                         </p>
                       )}
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-3">
-                      {/* Publish Button - Only show for owner and unpublished books */}
-                      {isOwner && !book.is_published && (
-                        <button
-                          onClick={() => {
-                            checkBookReadinessAndPublish(book.id, book.title);
-                          }}
-                          disabled={publishingBooks[book.id]}
-                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {publishingBooks[book.id] ? (
-                            <>
-                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                              <span>Publishing...</span>
-                            </>
-                          ) : (
-                            <>
-                              <FaRocket className="text-xs" />
-                              <span>Publish</span>
-                            </>
-                          )}
-                        </button>
-                      )}
+                    {/* Action Buttons - Mobile Responsive */}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                      {/* Primary Action Row */}
+                      <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                        {/* Edit Book Button - Always first for owners */}
+                        {isOwner && (
+                          <button
+                            onClick={() => window.location.href = `/book/${book.id}`}
+                            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-800 text-white rounded-full hover:bg-gray-900 transition-colors text-sm font-medium"
+                            title="Edit this book"
+                          >
+                            <FaEdit className="text-xs" />
+                            <span className="hidden sm:inline">Edit Book</span>
+                            <span className="sm:hidden">Edit</span>
+                          </button>
+                        )}
 
-                      {/* Change Cover Button - Only show for owner */}
-                      {isOwner && (
-                        <button
-                          onClick={() => openCoverImagePicker(book.id)}
-                          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition-colors text-sm font-medium"
-                          title="Change book cover"
-                        >
-                          <FaImage className="text-xs" />
-                          <span>Change Cover</span>
-                        </button>
-                      )}
+                        {/* Publish Button - Only show for owner and unpublished books */}
+                        {isOwner && !book.is_published && (
+                          <button
+                            onClick={() => {
+                              checkBookReadinessAndPublish(book.id, book.title);
+                            }}
+                            disabled={publishingBooks[book.id]}
+                            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {publishingBooks[book.id] ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                <span className="hidden sm:inline">Publishing...</span>
+                                <span className="sm:hidden">Pub...</span>
+                              </>
+                            ) : (
+                              <>
+                                <FaRocket className="text-xs" />
+                                <span>Publish</span>
+                              </>
+                            )}
+                          </button>
+                        )}
 
-                      {/* Published Status Badge */}
-                      {book.is_published && (
-                        <div className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                          <FaCheck className="text-xs" />
-                          <span>Published</span>
-                        </div>
-                      )}
+                        {/* Change Cover Button - Only show for owner */}
+                        {isOwner && (
+                          <button
+                            onClick={() => openCoverImagePicker(book.id)}
+                            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition-colors text-sm font-medium"
+                            title="Change book cover"
+                          >
+                            <FaImage className="text-xs" />
+                            <span className="hidden sm:inline">Change Cover</span>
+                            <span className="sm:hidden">Cover</span>
+                          </button>
+                        )}
 
-                      {/* Expand Button */}
+                        {/* Published Status Badge */}
+                        {book.is_published && (
+                          <div className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                            <FaCheck className="text-xs" />
+                            <span>Published</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Expand Button - Separate row on mobile for better spacing */}
                       <button
                         onClick={() => toggleBookExpansion(book.id)}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors text-sm font-medium"
+                        className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors text-sm font-medium w-full sm:w-auto"
                       >
                         {expandedBooks[book.id] ? (
                           <>
                             <FaChevronDown className="text-xs" />
-                            <span>Hide Chapters</span>
+                            <span className="hidden sm:inline">Hide Chapters</span>
+                            <span className="sm:hidden">Hide ({book.chapter_count})</span>
                           </>
                         ) : (
                           <>
                             <FaChevronRight className="text-xs" />
-                            <span>Show Chapters ({book.chapter_count})</span>
+                            <span className="hidden sm:inline">Show Chapters ({book.chapter_count})</span>
+                            <span className="sm:hidden">Show ({book.chapter_count})</span>
                           </>
                         )}
                       </button>
