@@ -760,6 +760,67 @@ export default function UnifiedBookEditor() {
     }
   };
 
+  // Quick audio generation for chapter list
+  const generateChapterAudio = async (chapterId: string, chapterTitle: string, chapterContent: string) => {
+    if (!chapterContent.trim()) {
+      alert('Chapter content is required to generate audio');
+      return;
+    }
+
+    if (chapterContent.length > 7500) {
+      alert('Chapter content exceeds 7,500 character limit for audio generation');
+      return;
+    }
+
+    // If no voice preference is set for this book, we need to set one
+    if (!book?.voice_preference) {
+      alert('Please set a voice preference for this book first by using the main audio generation button.');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/audio/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chapterId,
+          text: chapterContent,
+          voice: book.voice_preference
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || `Audio generation failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (data.audioUrl) {
+        // Update the chapter in the list
+        setChapters(prev => prev.map(ch => 
+          ch.id === chapterId ? { ...ch, audio_url: data.audioUrl } : ch
+        ));
+        
+        // Update selected chapter if it matches
+        if (selectedChapter?.id === chapterId) {
+          setSelectedChapter(prev => prev ? { ...prev, audio_url: data.audioUrl } : null);
+        }
+        
+        alert(`✅ Audio generated successfully for "${chapterTitle}"!`);
+      }
+    } catch (error) {
+      console.error('Error generating audio:', error);
+      alert(`❌ Failed to generate audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   // Loading state
   if (isLoading) {
   return (
@@ -922,16 +983,34 @@ export default function UnifiedBookEditor() {
                         </svg>
                       </button>
                       
-                      {/* Status Icons */}
+                      {/* Status Icons & Quick Audio Actions */}
                       <div className="flex flex-col gap-1">
                         {chapter.content.trim() && (
                           <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
                             ✍️
                           </span>
                         )}
+                        
+                        {/* Quick Audio Generation for chapters with content */}
+                        {chapter.content.trim() && !chapter.audio_url && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent chapter selection
+                              // Generate audio for this chapter
+                              generateChapterAudio(chapter.id, chapter.title, chapter.content);
+                            }}
+                            className="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded-full transition-colors flex items-center gap-1"
+                            title="Generate audio for this chapter"
+                          >
+                            <FaVolumeUp className="text-[10px]" />
+                            <span>Generate</span>
+                          </button>
+                        )}
+                        
                         {chapter.audio_url && (
-                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-                            <FaVolumeUp />
+                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full flex items-center gap-1">
+                            <FaVolumeUp className="text-[10px]" />
+                            <span>Audio Ready</span>
                           </span>
                         )}
                       </div>
