@@ -47,6 +47,12 @@ interface Chapter {
   audio_url?: string;
 }
 
+interface OutlineChapter {
+  title: string;
+  summary: string;
+  keyPoints?: string[];
+}
+
 export default function UnifiedBookEditor() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -82,7 +88,7 @@ export default function UnifiedBookEditor() {
   const [isGeneratingOutline, setIsGeneratingOutline] = useState(false);
   const [generatingChapterCount, setGeneratingChapterCount] = useState(1);
   const [showOutlineSuccess, setShowOutlineSuccess] = useState(false);
-  const [outlinePreview, setOutlinePreview] = useState<any[]>([]);
+  const [outlinePreview, setOutlinePreview] = useState<OutlineChapter[]>([]);
   const [showOutlineConfirmation, setShowOutlineConfirmation] = useState(false);
 
   // Chapter Edit Modal State
