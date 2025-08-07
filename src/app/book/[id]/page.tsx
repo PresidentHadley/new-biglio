@@ -1429,27 +1429,30 @@ The more detail you provide, the better the AI can assist with writing!"
             /* WRITE MODE - Always Editable */
             selectedChapter ? (
               <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Simplified Chapter Header */}
+                {/* Reorganized Chapter Header */}
                 <div className="p-4 border-b border-gray-200 bg-white flex-shrink-0">
+                  {/* Title Row with Chapter Number */}
+                  <div className="flex items-baseline gap-2 mb-3">
+                    <span className="text-sm font-medium text-gray-500 whitespace-nowrap">Chapter {selectedChapter.chapter_number}</span>
+                    <input
+                      type="text"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="text-xl font-bold text-gray-900 bg-transparent border-none outline-none focus:bg-white focus:border focus:border-blue-300 focus:rounded px-2 py-1 -mx-2 -my-1 flex-1"
+                      placeholder="Chapter title"
+                    />
+                  </div>
+                  
+                  {/* Action Row with Buttons and Status */}
                   <div className="flex justify-between items-center">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        className="text-xl font-bold text-gray-900 bg-transparent border-none outline-none focus:bg-white focus:border focus:border-blue-300 focus:rounded px-2 py-1 -mx-2 -my-1 w-full"
-                        placeholder="Chapter title"
-                      />
-                      <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
-                        <span>Chapter {selectedChapter.chapter_number}</span>
-                        {savingChapter && <span className="text-blue-600">💾 Saving...</span>}
-                        {showSavedIndicator && <span className="text-green-600">✅ Saved!</span>}
-                        {lastSaved && !savingChapter && !showSavedIndicator && (
-                          <span className="text-gray-400">
-                            Last saved: {lastSaved.toLocaleTimeString()}
-                          </span>
-                        )}
-                      </div>
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                      {savingChapter && <span className="text-blue-600">💾 Saving...</span>}
+                      {showSavedIndicator && <span className="text-green-600">✅ Saved!</span>}
+                      {lastSaved && !savingChapter && !showSavedIndicator && (
+                        <span className="text-gray-400">
+                          Last saved: {lastSaved.toLocaleTimeString()}
+                        </span>
+                      )}
                     </div>
                     <div className="flex gap-3">
                       <AudioGenerationButton
