@@ -76,17 +76,20 @@ export function ChannelHeader({ channel, isOwner, bookCount, onChannelUpdate, on
   });
 
   // Update edit values when channel prop changes (important for syncing)
+  // BUT only when not currently editing to avoid interfering with user input
   useEffect(() => {
-    setEditValues({
-      display_name: channel.display_name || channel.name || '',
-      bio: channel.bio || channel.description || '',
-      website_url: channel.website_url || '',
-      instagram_url: channel.instagram_url || '',
-      twitter_url: channel.twitter_url || '',
-      facebook_url: channel.facebook_url || '',
-      linkedin_url: channel.linkedin_url || ''
-    });
-  }, [channel]);
+    if (!editingField) {
+      setEditValues({
+        display_name: channel.display_name || channel.name || '',
+        bio: channel.bio || channel.description || '',
+        website_url: channel.website_url || '',
+        instagram_url: channel.instagram_url || '',
+        twitter_url: channel.twitter_url || '',
+        facebook_url: channel.facebook_url || '',
+        linkedin_url: channel.linkedin_url || ''
+      });
+    }
+  }, [channel, editingField]);
   const [saveLoading, setSaveLoading] = useState(false);
   
   // State for image uploads
@@ -325,6 +328,7 @@ export function ChannelHeader({ channel, isOwner, bookCount, onChannelUpdate, on
           <button
             onClick={() => {
               setEditingField(null);
+              // Reset to the original value from props when cancelling
               setEditValues(prev => ({ ...prev, [field]: value }));
             }}
             className="p-1 text-red-600 hover:bg-red-50 rounded"
