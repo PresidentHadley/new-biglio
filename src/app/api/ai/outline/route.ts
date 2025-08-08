@@ -187,6 +187,19 @@ ${existingOutline ? `\nExisting outline to improve upon:\n${JSON.stringify(exist
     aiResponse = aiResponse.replace(/\bunveil\b/gi, 'reveal');
     aiResponse = aiResponse.replace(/\bcomprehensive\b/gi, 'complete');
     
+    // Remove meta-commentary phrases that break audiobook immersion
+    aiResponse = aiResponse.replace(/\bas we wrap up this chapter,?\s*/gi, '');
+    aiResponse = aiResponse.replace(/\bin this chapter,?\s*(we'll|we will|you'll|you will)\s*/gi, '');
+    aiResponse = aiResponse.replace(/\bto wrap up,?\s*/gi, '');
+    aiResponse = aiResponse.replace(/\bin conclusion,?\s*/gi, '');
+    aiResponse = aiResponse.replace(/\bto summarize,?\s*/gi, '');
+    aiResponse = aiResponse.replace(/\bas we conclude,?\s*/gi, '');
+    aiResponse = aiResponse.replace(/\bto recap,?\s*/gi, '');
+    aiResponse = aiResponse.replace(/\bthroughout this chapter,?\s*/gi, '');
+    aiResponse = aiResponse.replace(/\bin the next chapter,?\s*(we'll|we will|you'll|you will)\s*/gi, '');
+    aiResponse = aiResponse.replace(/\bmoving forward,?\s*/gi, '');
+    aiResponse = aiResponse.replace(/\bas we move forward,?\s*/gi, '');
+    
     // Try to parse JSON response
     let outline;
     try {

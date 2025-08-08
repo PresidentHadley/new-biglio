@@ -242,13 +242,26 @@ ${audienceGuidance}`;
       return `${numberToWords(number)} pound${number !== 1 ? 's' : ''}`;
     });
     
-    // Optional: Filter common AI buzzwords that don't sound natural in audiobooks
+    // Filter common AI buzzwords that don't sound natural in audiobooks
     aiMessage = aiMessage.replace(/\bdelve into\b/gi, 'explore');
     aiMessage = aiMessage.replace(/\bdelve deeper\b/gi, 'explore further');
     aiMessage = aiMessage.replace(/\butilize\b/gi, 'use');
     aiMessage = aiMessage.replace(/\bcommence\b/gi, 'begin');
     aiMessage = aiMessage.replace(/\bunveil\b/gi, 'reveal');
     aiMessage = aiMessage.replace(/\bcomprehensive\b/gi, 'complete');
+    
+    // Remove meta-commentary phrases that break audiobook immersion
+    aiMessage = aiMessage.replace(/\bas we wrap up this chapter,?\s*/gi, '');
+    aiMessage = aiMessage.replace(/\bin this chapter,?\s*(we'll|we will|you'll|you will)\s*/gi, '');
+    aiMessage = aiMessage.replace(/\bto wrap up,?\s*/gi, '');
+    aiMessage = aiMessage.replace(/\bin conclusion,?\s*/gi, '');
+    aiMessage = aiMessage.replace(/\bto summarize,?\s*/gi, '');
+    aiMessage = aiMessage.replace(/\bas we conclude,?\s*/gi, '');
+    aiMessage = aiMessage.replace(/\bto recap,?\s*/gi, '');
+    aiMessage = aiMessage.replace(/\bthroughout this chapter,?\s*/gi, '');
+    aiMessage = aiMessage.replace(/\bin the next chapter,?\s*(we'll|we will|you'll|you will)\s*/gi, '');
+    aiMessage = aiMessage.replace(/\bmoving forward,?\s*/gi, '');
+    aiMessage = aiMessage.replace(/\bas we move forward,?\s*/gi, '');
     
     return NextResponse.json({
       success: true,
