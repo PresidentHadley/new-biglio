@@ -66,7 +66,13 @@ export function ModernSideNav({
         .order('display_name');
       
       if (data) {
-        setUserChannels(data);
+        // Type assertion to ensure proper types
+        const typedChannels = data.map(channel => ({
+          id: String(channel.id),
+          handle: String(channel.handle),
+          display_name: String(channel.display_name)
+        }));
+        setUserChannels(typedChannels);
       }
     };
 
