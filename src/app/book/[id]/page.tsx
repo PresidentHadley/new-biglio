@@ -1522,17 +1522,9 @@ The more detail you provide, the better the AI can assist with writing!"
                     />
                   </div>
                   
-                  {/* Action Row with Buttons and Status */}
-                  <div className="flex justify-start items-center gap-4">
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      {savingChapter && <span className="text-blue-600">💾 Saving...</span>}
-                      {showSavedIndicator && <span className="text-green-600">✅ Saved!</span>}
-                      {lastSaved && !savingChapter && !showSavedIndicator && (
-                        <span className="text-gray-400">
-                          Last saved: {lastSaved.toLocaleTimeString()}
-                        </span>
-                      )}
-                    </div>
+                  {/* Action Row with Audio Controls and Status */}
+                  <div className="flex justify-between items-center gap-4">
+                    {/* Left side: Audio Generation Button (Play, Download, Regenerate) */}
                     <div className="flex gap-3">
                       <AudioGenerationButton
                         chapterId={selectedChapter.id}
@@ -1550,6 +1542,12 @@ The more detail you provide, the better the AI can assist with writing!"
                           setBook(prev => prev ? { ...prev, voice_preference: voice } : null);
                         }}
                       />
+                    </div>
+                    
+                    {/* Right side: Saving status (only show temporary states) */}
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                      {savingChapter && <span className="text-blue-600">💾 Saving...</span>}
+                      {showSavedIndicator && <span className="text-green-600">✅ Saved!</span>}
                     </div>
                   </div>
                 </div>
@@ -1597,8 +1595,8 @@ The more detail you provide, the better the AI can assist with writing!"
                       )}
                     </div>
                     
-                    {/* Save Button - Always Visible */}
-                    <div className="flex justify-center">
+                    {/* Save Button and Last Saved - Always Visible */}
+                    <div className="flex flex-col items-center gap-2">
                       <button
                         onClick={() => saveChapterContent(selectedChapter.id, editTitle, editContent)}
                         disabled={savingChapter}
@@ -1616,6 +1614,13 @@ The more detail you provide, the better the AI can assist with writing!"
                           </>
                         )}
                       </button>
+                      
+                      {/* Last Saved Timestamp */}
+                      {lastSaved && !savingChapter && !showSavedIndicator && (
+                        <span className="text-gray-400 text-sm">
+                          Last saved: {lastSaved.toLocaleTimeString()}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
