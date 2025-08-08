@@ -11,6 +11,31 @@ interface ChatMessage {
   content: string;
 }
 
+// Helper function to convert numbers to words for TTS
+function numberToWords(num: number): string {
+  const ones = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+  const teens = ['ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+  const tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+  const hundreds = ['', 'one hundred', 'two hundred', 'three hundred', 'four hundred', 'five hundred', 'six hundred', 'seven hundred', 'eight hundred', 'nine hundred'];
+
+  if (num === 0) return 'zero';
+  if (num < 10) return ones[num];
+  if (num < 20) return teens[num - 10];
+  if (num < 100) {
+    const ten = Math.floor(num / 10);
+    const one = num % 10;
+    return tens[ten] + (one ? '-' + ones[one] : '');
+  }
+  if (num < 1000) {
+    const hundred = Math.floor(num / 100);
+    const remainder = num % 100;
+    return hundreds[hundred] + (remainder ? ' ' + numberToWords(remainder) : '');
+  }
+  
+  // For larger numbers, just return the string version
+  return num.toString();
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { messages, context } = await request.json();
@@ -195,7 +220,27 @@ ${audienceGuidance}`;
     let aiMessage = responseContent.type === 'text' ? responseContent.text : '';
     
     // Apply content filtering/sanitization (from old system)
-    aiMessage = aiMessage.replace(/four hundred fifty-one degrees Fahrenheit/g, '451f');
+    // Convert abbreviated measurements to fully spelled out versions for TTS
+    aiMessage = aiMessage.replace(/(\d+)°?f\b/gi, (match, num) => {
+      const number = parseInt(num);
+      return `${numberToWords(number)} degrees Fahrenheit`;
+    });
+    aiMessage = aiMessage.replace(/(\d+)°?c\b/gi, (match, num) => {
+      const number = parseInt(num);
+      return `${numberToWords(number)} degrees Celsius`;
+    });
+    aiMessage = aiMessage.replace(/(\d+)\s*oz\b/gi, (match, num) => {
+      const number = parseInt(num);
+      return `${numberToWords(number)} ounce${number !== 1 ? 's' : ''}`;
+    });
+    aiMessage = aiMessage.replace(/(\d+)\s*g\b/gi, (match, num) => {
+      const number = parseInt(num);
+      return `${numberToWords(number)} gram${number !== 1 ? 's' : ''}`;
+    });
+    aiMessage = aiMessage.replace(/(\d+)\s*lbs?\b/gi, (match, num) => {
+      const number = parseInt(num);
+      return `${numberToWords(number)} pound${number !== 1 ? 's' : ''}`;
+    });
     
     // Optional: Filter common AI buzzwords that don't sound natural in audiobooks
     aiMessage = aiMessage.replace(/\bdelve into\b/gi, 'explore');
