@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { FaQuestion, FaTimes, FaPaperPlane, FaRobot, FaUser, FaMicrophone, FaStop } from 'react-icons/fa';
 
 interface Message {
@@ -20,6 +21,7 @@ interface ContactForm {
 }
 
 const SmartContactWidget = () => {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [currentView, setCurrentView] = useState<'chat' | 'contact' | 'success'>('chat');
   const [messages, setMessages] = useState<Message[]>([
@@ -191,7 +193,7 @@ const SmartContactWidget = () => {
         ...contactForm,
         conversation: messages.map(m => `${m.type.toUpperCase()}: ${m.content}`).join('\n\n'),
         timestamp: new Date().toLocaleString(),
-        page: window.location.pathname
+        page: pathname
       });
       
       setCurrentView('success');
@@ -272,7 +274,7 @@ const SmartContactWidget = () => {
   };
 
   // Hide on main feed page
-  if (typeof window !== 'undefined' && window.location.pathname === '/') {
+  if (pathname === '/') {
     return null;
   }
 

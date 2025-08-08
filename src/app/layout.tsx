@@ -14,13 +14,19 @@ export const metadata: Metadata = {
   title: 'Biglio - Instagram for Audiobooks',
   description: 'Discover, create, and share audiobook experiences',
   manifest: '/manifest.json',
-  themeColor: '#000000',
-  viewport: 'width=device-width, initial-scale=1',
   icons: {
     icon: '/favicon.ico',
     apple: '/apple-touch-icon.png',
   },
 };
+
+export async function generateViewport() {
+  return {
+    width: 'device-width',
+    initialScale: 1,
+    themeColor: '#000000',
+  }
+}
 
 export default function RootLayout({
   children,

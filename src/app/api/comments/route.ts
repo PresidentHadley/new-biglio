@@ -5,8 +5,9 @@ import { cookies } from 'next/headers';
 // POST /api/comments - Create a new comment
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const supabase = createRouteHandlerClient({ 
+      cookies: async () => await cookies() 
+    });
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {

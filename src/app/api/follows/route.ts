@@ -5,11 +5,11 @@ import { cookies } from 'next/headers';
 // POST /api/follows - Toggle follow on a channel
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const supabase = createRouteHandlerClient({ 
+      cookies: async () => await cookies() 
+    });
     
     console.log('🔍 Follows API: Getting user...');
-    console.log('🍪 Follows API: Cookies available:', Object.keys(cookieStore).length > 0 ? 'Yes' : 'No');
     
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
           hasUser: !!user,
           authError: authError?.message || null,
           timestamp: new Date().toISOString(),
-          hasCookies: Object.keys(cookieStore).length > 0
+          hasCookies: false
         }
       }, { status: 401 });
     }
@@ -104,8 +104,9 @@ export async function POST(request: NextRequest) {
 // GET /api/follows?channel_id=xxx - Check if user follows a channel
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const supabase = createRouteHandlerClient({ 
+      cookies: async () => await cookies() 
+    });
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {

@@ -5,13 +5,11 @@ import { cookies } from 'next/headers';
 // Test authentication status
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient({ 
+      cookies: async () => await cookies() 
+    });
     
-    // Get all cookies for debugging  
-    const allCookies: Record<string, string> = {};
-    const cookieNames: string[] = [];
-    
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+
     
     console.log('🔍 Testing authentication...');
     console.log('🍪 Cookie store ready');
@@ -41,8 +39,8 @@ export async function GET(request: NextRequest) {
       authError: authError?.message || null,
       sessionError: sessionError?.message || null,
       timestamp: new Date().toISOString(),
-      cookieCount: cookieNames.length,
-      cookieNames: cookieNames,
+      cookieCount: 0,
+      cookieNames: [],
       userAgent: request.headers.get('user-agent'),
       origin: request.headers.get('origin')
     });

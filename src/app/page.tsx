@@ -212,7 +212,7 @@ export default function HomePage() {
             {/* Engagement Info - Real Data */}
             <div className="px-4 pb-3">
               <p className="text-white font-semibold text-sm">{book.like_count.toLocaleString()} likes</p>
-              <p className="text-white text-sm mt-1">
+              <div className="text-white text-sm mt-1">
                 <Link 
                   href={`/channel/${book.channel.handle}`}
                   className="font-semibold hover:text-blue-300 transition-colors cursor-pointer inline-flex items-center gap-1"
@@ -220,12 +220,12 @@ export default function HomePage() {
                 >
                   <FaUser className="w-3 h-3" />
                   @{book.channel.handle}
-                                  </Link> {book.description} 
-                  <div className="flex items-center gap-1 mt-1">
-                    <FaHeadphones className="text-purple-500 text-sm" />
-                    <span className="text-gray-500 text-xs">Audiobook</span>
-                  </div>
-              </p>
+                </Link> {book.description}
+                <div className="flex items-center gap-1 mt-1">
+                  <FaHeadphones className="text-purple-500 text-sm" />
+                  <span className="text-gray-500 text-xs">Audiobook</span>
+                </div>
+              </div>
               <p className="text-gray-400 text-sm mt-1">View all {book.comment_count} comments</p>
             </div>
           </div>
