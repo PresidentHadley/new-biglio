@@ -8,7 +8,7 @@ import { useBooks } from '@/hooks/useBooks';
 import { AudioPlayerModal } from '@/components/AudioPlayerModal';
 
 import SocialActions from '@/components/SocialActions';
-
+import ExpandableDescription from '@/components/ExpandableDescription';
 import FollowButton from '@/components/FollowButton';
 
 interface Book {
@@ -220,7 +220,7 @@ export default function HomePage() {
                 >
                   <FaUser className="w-3 h-3" />
                   @{book.channel.handle}
-                </Link> {book.description}
+                </Link> <ExpandableDescription description={book.description} />
                 <div className="flex items-center gap-1 mt-1">
                   <FaHeadphones className="text-purple-500 text-sm" />
                   <span className="text-gray-500 text-xs">Audiobook</span>
