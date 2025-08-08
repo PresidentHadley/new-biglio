@@ -38,6 +38,7 @@ interface NavItem {
   requireAuth?: boolean;
   badge?: number;
   divider?: boolean;
+  sectionHeader?: boolean;
 }
 
 export function ModernSideNav({ 
@@ -50,26 +51,26 @@ export function ModernSideNav({
   const isAuthenticated = !!user;
   const pathname = usePathname();
   const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [userChannelHandle, setUserChannelHandle] = useState<string | null>(null);
+  const [userChannels, setUserChannels] = useState<Array<{id: string, handle: string, display_name: string}>>([]);
 
-  // Fetch user's actual channel handle
+  // Fetch user's channels
   useEffect(() => {
-    const fetchUserChannel = async () => {
+    const fetchUserChannels = async () => {
       if (!user) return;
       
       const supabase = createClient();
       const { data } = await supabase
         .from('channels')
-        .select('handle')
+        .select('id, handle, display_name')
         .eq('user_id', user.id)
-        .single();
+        .order('display_name');
       
       if (data) {
-        setUserChannelHandle(String(data.handle));
+        setUserChannels(data);
       }
     };
 
-    fetchUserChannel();
+    fetchUserChannels();
   }, [user]);
 
   // Close on escape key
@@ -103,7 +104,7 @@ export function ModernSideNav({
     setTouchStart(null);
   };
 
-  const navItems: NavItem[] = [
+  const baseNavItems: NavItem[] = [
     {
       id: 'home',
       label: 'Home',
@@ -135,13 +136,6 @@ export function ModernSideNav({
       label: 'My Biglios',
       href: '/dashboard',
       icon: FaBook,
-      requireAuth: true
-    },
-    {
-      id: 'channel',
-      label: 'My Channel',
-      href: userChannelHandle ? `/channel/${userChannelHandle}` : '/dashboard',
-      icon: FaUser,
       requireAuth: true
     },
     {
@@ -183,6 +177,38 @@ export function ModernSideNav({
       icon: FaCog,
       requireAuth: true
     }
+  ];
+
+  // Build dynamic nav items including user channels
+  const navItems: NavItem[] = [
+    ...baseNavItems.slice(0, 5), // Everything up to "My Biglios"
+    
+    // Add channels section if user has channels
+    ...(isAuthenticated && userChannels.length > 0 ? [
+      {
+        id: 'channels-divider',
+        label: '',
+        icon: FaHome,
+        divider: true
+      },
+      // Section header for channels
+      {
+        id: 'my-channels-header',
+        label: 'MY CHANNELS',
+        icon: FaUser,
+        sectionHeader: true
+      },
+      // Individual channels
+      ...userChannels.map((channel, index) => ({
+        id: `channel-${channel.id}`,
+        label: `@${channel.handle}`,
+        href: `/channel/${channel.handle}`,
+        icon: FaUser,
+        requireAuth: true
+      }))
+    ] : []),
+    
+    ...baseNavItems.slice(5) // Everything after "My Biglios"
   ];
 
   const handleNavClick = (item: NavItem) => {
@@ -283,6 +309,15 @@ export function ModernSideNav({
             if (item.divider) {
               return (
                 <div key={item.id} className="my-2 border-t border-gray-200 dark:border-gray-700" />
+              );
+            }
+
+            // Render section header
+            if (item.sectionHeader) {
+              return (
+                <div key={item.id} className="px-6 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  {item.label}
+                </div>
               );
             }
 
