@@ -9,37 +9,23 @@ export async function DELETE(
   const { id: bookId } = await params;
 
   try {
-    // Get the current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // TEMPORARY: Skip authentication until phone/email auth is implemented
+    // TODO: Re-enable authentication when user system is ready
     
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // First, verify the user owns this book
+    // Just verify the book exists
     const { data: book, error: bookError } = await supabase
       .from('biglios')
       .select(`
         id, 
         title, 
         channel_id,
-        cover_url,
-        channels!inner(user_id)
+        cover_url
       `)
       .eq('id', bookId)
       .single();
 
     if (bookError || !book) {
       return NextResponse.json({ error: 'Book not found' }, { status: 404 });
-    }
-
-    // Check ownership  
-    const channelUserId = book.channels && typeof book.channels === 'object' && 'user_id' in book.channels 
-      ? (book.channels as { user_id: string }).user_id 
-      : null;
-      
-    if (channelUserId !== user.id) {
-      return NextResponse.json({ error: 'Unauthorized - not your book' }, { status: 403 });
     }
 
     // Delete in the correct order to handle foreign key constraints

@@ -243,15 +243,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Success State */}
-        {books.length > 0 && (
-          <div className="p-6 text-center">
-            <div className="bg-green-900 rounded-lg p-4">
-              <p className="text-green-400 font-semibold">✅ Connected to Supabase!</p>
-              <p className="text-green-300 text-sm">Loaded {books.length} book(s) from database</p>
-            </div>
-          </div>
-        )}
+
       </main>
 
       {/* Audio Player Modal */}
